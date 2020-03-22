@@ -1,6 +1,7 @@
 library(shiny)
 library(plotly)
 
+
 shinyUI(fluidPage(
   tags$style(
     type='text/css', 
@@ -21,7 +22,7 @@ shinyUI(fluidPage(
       selectizeInput("state", label=h5("State / Province"), choices=NULL, width="100%")
     ),
     column(
-      4, 
+      1, 
       checkboxGroupInput(
         "metrics", label=h5("Selected Metrics"), 
         choices=c("Confirmed", "Deaths", "Recovered"), 
@@ -35,7 +36,25 @@ shinyUI(fluidPage(
     plotlyOutput("cumulatedMetrics")
   ),
   fluidRow(
-    plotOutput("filletedPlot", width = "100%", height = 1600)
+    plotlyOutput("CumulatedPlot", width = "100%")
+  ),
+  fluidRow(
+    plotlyOutput("filletedPlot", width = "100%")
+  ),
+  fluidRow(
+    checkboxGroupInput(
+      "states", label=h5("Selected States"), 
+      choices= c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
+                 "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", 
+                 "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", 
+                 "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", 
+                 "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
+                 "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", 
+                 "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
+                 "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
+                 "Wisconsin", "Wyoming"), 
+      selected=c("Minnesota", "New York", "Michigan", "Washington", "Wisconsin"), 
+      inline = TRUE)
   )
 ))
 
