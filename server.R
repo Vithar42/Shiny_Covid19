@@ -1,15 +1,11 @@
 # Data from:
 # Johns Hopkins University Center for System Science and Engineering (JHU CCSE)
 
-library(reshape2)
-library(dplyr)
-library(tidyr)  
-library(ggplot2)
-library(plotly)
-library(stringr)
+library(tidyverse)
 
 # Johns Hopkins repository for COVID-19 data, https://github.com/CSSEGISandData/COVID-19
-baseURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
+#baseURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
+baseURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/archived_data/archived_time_series"
 
 f1 = list(family="Courier New, monospace", size=12, color="rgb(30,30,30)")
 
@@ -34,160 +30,162 @@ loadData = function(fileName, columnName) {
   return(data)
 }
 
-allData = 
-  loadData("time_series_19-covid-Confirmed.csv", "CumConfirmed") %>%
-    inner_join(loadData("time_series_19-covid-Deaths.csv", "CumDeaths")) %>%
-    inner_join(loadData("time_series_19-covid-Recovered.csv", "CumRecovered"))
 
+  allData = 
+    loadData("time_series_19-covid-Confirmed_archived_0325.csv", "CumConfirmed") %>%
+    inner_join(loadData("time_series_19-covid-Deaths_archived_0325.csv", "CumDeaths"))
+
+ #allData = 
+ #  loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") %>%
+ #    inner_join(loadData("time_series_covid19_deaths_global.csv", "CumDeaths"))
+
+ filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
+ statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
+   select(NAME, CENSUS2010POP )
+ 
+#allData = 
+#  loadData("time_series_covid19_confirmed_US.csv", "Confirmed") %>%
+#    inner_join(loadData("time_series_covid19_deaths_US.csv", "Deaths")) %>%
+#    inner_join(loadData("time_series_covid19_testing_US.csv", "testing"))
+
+
+# Main FUnction ----
 function(input, output, session) {
   
   data = reactive({
     d = allData %>%
-      filter(`Country/Region` == input$country)
-    if(input$state != "<all>") {
-      d = d %>% 
-        filter(`Province/State` == input$state) 
-    } else {
-      d = d %>% 
-        group_by(date) %>% 
-        summarise_if(is.numeric, sum, na.rm=TRUE)
-    }
+      filter(`Country/Region` == "US") %>% 
+      group_by(date) %>% 
+      summarise_if(is.numeric, sum, na.rm=TRUE)
     
     d %>%
       mutate(
         dateStr = format(date, format="%b %d, %Y"),    # Jan 20, 2020
         NewConfirmed=CumConfirmed - lag(CumConfirmed, default=0),
-        NewRecovered=CumRecovered - lag(CumRecovered, default=0),
+        #NewRecovered=CumRecovered - lag(CumRecovered, default=0),
         NewDeaths=CumDeaths - lag(CumDeaths, default=0)
       )
   })
   
-  observeEvent(input$country, {
-    states = allData %>%
-      filter(`Country/Region` == input$country) %>% 
-      pull(`Province/State`)
-    states = c("<all>", sort(unique(states)))
-    updateSelectInput(session, "state", choices=states, selected=states[1])
-  })
-  
-  countries = sort(unique(allData$`Country/Region`))
-  
-  updateSelectInput(session, "country", choices=countries, selected="US")
-  
-  renderBarPlot = function(varPrefix, legendPrefix, yaxisTitle) {
-    renderPlotly({
-      data = data()
-      
-      plt = data %>% 
-        plot_ly() %>%
-        filter(CumConfirmed > 0) %>%
-        config(displayModeBar=FALSE) %>%
-        layout(
-          barmode='group', 
-          xaxis=list(
-            title="", tickangle=-90, type='category', ticktext=as.list(data$dateStr), 
-            tickvals=as.list(data$date), gridwidth=1), 
-          yaxis=list(
-            title=yaxisTitle
-          ),
-          legend=list(x=0.05, y=0.95, font=list(size=15), bgcolor='rgba(240,240,240,0.5)')#,
-          #font=f1
-        )
-      
-      for(metric in input$metrics) 
-        plt = plt %>%
-          add_trace(
-            x= ~date, y=data[[paste0(varPrefix, metric)]], type='bar', 
-            name=paste(legendPrefix, metric, "Cases"),
-            marker=list(
-              color=switch(metric, Deaths='rgb(200,30,30)', Recovered='rgb(30,200,30)', Confirmed='rgb(100,140,240)'),
-              line=list(color='rgb(8,48,107)', width=1.0)
-            )
-          )
-      
-      plt
-    })
-  }
-  
-  
-  output$CumulatedPlot = renderPlotly({
-    
-    usData <- allData %>%
+  Cumdata = reactive({
+    allData %>%
       rename(state = `Province/State`,
              country = `Country/Region`) %>%
       filter(country == "US",
-             CumConfirmed > 50) 
-    
-    test <- usData %>%
-      rename(Confirmed = CumConfirmed, Deaths = CumDeaths, Recovered = CumRecovered) %>%
-      gather(key = "key", value = "value", Confirmed, Deaths, Recovered) %>%
-      filter(key %in% input$metrics)
-    
-    test <- test %>% 
+             #CumConfirmed > 50,
+             date > "2020-03-04")
+  })
+  
+  output$CumulatedPlot = renderPlotly({
+
+    df <- Cumdata() %>%
+      rename(Confirmed = CumConfirmed, Deaths = CumDeaths) %>%
+      gather(key = "key", value = "value", Confirmed, Deaths) %>%
+      filter(key %in% input$metrics) %>% 
       group_by(date, key) %>% 
       summarise(value = sum(value))
     
-    
-    # ggplot(usData, aes(x = date, y = CumConfirmed, fill = state)) +
-    #   geom_bar(position="dodge", stat = "identity") + 
-    #   facet_wrap(~state, ncol = 5) + 
-    #   theme(legend.position = "none")
-    
-    p <- ggplot(test, aes(x = date, y = value, fill = key)) +
+    ggplot(df, aes(x = date, y = value, fill = key)) +
       geom_bar(position="dodge", stat = "identity") +
-      #facet_wrap(~state, ncol = 5) + 
-      theme(legend.position = "none")
-    
-    ggplotly(p)
+      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none")
+
+    ggplotly()
     
   })
   
-  
-  
-  output$filletedPlot = renderPlotly({
-    
-    usData <- allData %>%
+  statedata = reactive({
+    test <- allData %>%
       rename(state = `Province/State`,
              country = `Country/Region`) %>%
       filter(country == "US",
              state %in% state.name,
-             CumConfirmed > 0,
+             date > "2020-03-04",
              state %in% input$states)
+  })
+  
+  output$statePlot = renderPlotly({
     
-    test <- usData %>%
-      rename(Confirmed = CumConfirmed, Deaths = CumDeaths, Recovered = CumRecovered) %>%
-      gather(key = "key", value = "value", Confirmed, Deaths, Recovered) %>%
-      filter(key %in% input$metrics)
-    
-    test2 <- test %>%
-      filter(key == "Confirmed") %>%
-      spread(state, value)
-    
-    
-    # ggplot(usData, aes(x = date, y = CumConfirmed, fill = state)) +
-    #   geom_bar(position="dodge", stat = "identity") + 
-    #   facet_wrap(~state, ncol = 5) + 
-    #   theme(legend.position = "none")
-     
-     # ggplot(test, aes(x = date, y = value, fill = key)) +
-     #     geom_bar(position="dodge", stat = "identity") +
-     #     facet_wrap(~state, ncol = 5) + 
-     #     theme(legend.position = "none")
-    
-     p <- ggplot(usData, aes(x = date, y = CumConfirmed , group = state, color = state)) +
-       geom_line() + 
-       theme(legend.position = "none")
+    df <- statedata()
 
-     ggplotly(p)
+    ggplot(df, aes(x = date, y = CumConfirmed, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none")
+    
+    ggplotly()
     
   })
   
-  output$dailyMetrics = renderBarPlot("New", legendPrefix="New", yaxisTitle="New Cases per Day")
-  output$cumulatedMetrics = renderBarPlot("Cum", legendPrefix="Cumulated", yaxisTitle="Cumulated Cases")
+  linedupstatedata = reactive({
+    allData %>%
+      rename(state = `Province/State`,
+             country = `Country/Region`) %>%
+      filter(country == "US",
+             state %in% state.name,
+             date > "2020-03-04",
+             state %in% input$states) %>%
+      select(-country) %>%
+      group_by(state) %>%
+      mutate(dayNo = if_else(CumConfirmed > 25, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = cumsum(dayNo)) %>%
+      filter(dayNo >= 1)
+  })
   
+  output$linedupstatePlot = renderPlotly({
+    
+    df <- linedupstatedata()
+    
+    ggplot(df, aes(x = dayNo, y = CumConfirmed, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
+      theme(legend.position = "none")
+    
+    ggplotly()
+    
+  })
+  
+  statecapita <- reactive({
+    
+    statePop <- statePop %>%
+      select(state = NAME, pop = CENSUS2010POP)
+    
+    
+    statedata <- linedupstatedata() %>%
+    #statedata <- statedata() %>%
+      select(state, dayNo, CumConfirmed)
+    
+   statedata %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/1000,
+             conpercapita =  CumConfirmed/pop)
+    
+
+    
+  })
+  
+  output$lineduppercapitastatePlot = renderPlotly({
+    
+    df <- statecapita()
+    
+    ggplot(df, aes(x = dayNo, y = conpercapita, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
+      theme(legend.position = "none")
+    
+    ggplotly()
+    
+    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
+    
+  })
 
   
-    
+  
 }
 
 

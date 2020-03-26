@@ -14,47 +14,41 @@ shinyUI(fluidPage(
   titlePanel("Case History of the Coronavirus (COVID-19)"),
   fluidRow(
     column(
-      4, 
-      selectizeInput("country", label=h5("Country"), choices=NULL, width="100%")
-    ),
-    column(
-      4, 
-      selectizeInput("state", label=h5("State / Province"), choices=NULL, width="100%")
-    ),
-    column(
       1, 
       checkboxGroupInput(
         "metrics", label=h5("Selected Metrics"), 
-        choices=c("Confirmed", "Deaths", "Recovered"), 
-        selected=c("Confirmed", "Deaths", "Recovered"), width="100%")
+        choices=c("Confirmed", "Deaths"), 
+        selected=c("Confirmed", "Deaths"), width="100%")
+    ),
+    column(
+      10, 
+      checkboxGroupInput(
+        "states", label=h5("Selected States"), 
+        choices= c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
+                   "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", 
+                   "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", 
+                   "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", 
+                   "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
+                   "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", 
+                   "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
+                   "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
+                   "Wisconsin", "Wyoming"), 
+        selected=c("Minnesota", "Michigan", "Wisconsin","Tennessee", "Ohio", "North Carolina", "Maryland"), 
+        inline = TRUE)
     )
-  ),
-  fluidRow(
-    plotlyOutput("dailyMetrics")
-  ),
-  fluidRow(
-    plotlyOutput("cumulatedMetrics")
   ),
   fluidRow(
     plotlyOutput("CumulatedPlot", width = "100%")
   ),
   fluidRow(
-    plotlyOutput("filletedPlot", width = "100%")
+    plotlyOutput("statePlot", width = "100%")
   ),
   fluidRow(
-    checkboxGroupInput(
-      "states", label=h5("Selected States"), 
-      choices= c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
-                 "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", 
-                 "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", 
-                 "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", 
-                 "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
-                 "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", 
-                 "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
-                 "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
-                 "Wisconsin", "Wyoming"), 
-      selected=c("Minnesota", "New York", "Michigan", "Washington", "Wisconsin"), 
-      inline = TRUE)
+    plotlyOutput("linedupstatePlot", width = "100%")
+  ),
+  fluidRow(
+    plotlyOutput("lineduppercapitastatePlot", width = "100%")
   )
+
 ))
 
