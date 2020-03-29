@@ -1,27 +1,16 @@
-library(shiny)
-library(plotly)
-
-
-shinyUI(fluidPage(
-  tags$style(
-    type='text/css', 
-    ".selectize-input { font-family: Courier New, monospace; } .selectize-dropdown { font-family: Courier New, monospace; }"
-  ),
-  tags$style(HTML(
-    "body { font-family: Courier New, monospace; line-height: 1.1; }"
-  )),
+# Define UI for random distribution app ----
+ui <- fluidPage(
   
-  titlePanel("Case History of the Coronavirus (COVID-19)"),
-  fluidRow(
-    column(
-      1, 
-      checkboxGroupInput(
-        "metrics", label=h5("Selected Metrics"), 
-        choices=c("Confirmed", "Deaths"), 
-        selected=c("Confirmed", "Deaths"), width="100%")
-    ),
-    column(
-      10, 
+  # App title ----
+  titlePanel("Tabsets"),
+  
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+    
+    # Sidebar panel for inputs ----
+    sidebarPanel(
+      
+      # Input: Select the random distribution type ----
       checkboxGroupInput(
         "states", label=h5("Selected States"), 
         choices= c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
@@ -33,22 +22,81 @@ shinyUI(fluidPage(
                    "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
                    "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
                    "Wisconsin", "Wyoming"), 
-        selected=c("Minnesota", "Michigan", "Wisconsin","Tennessee", "Ohio", "North Carolina", "Maryland"), 
-        inline = TRUE)
+        selected=c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"), 
+        inline = TRUE),
+      
+      # br() element to introduce extra vertical spacing ----
+      br(),
+      
+      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
+      checkboxGroupInput(
+        "metrics", label=h5("Selected Metrics"), 
+        choices=c("Confirmed", "Deaths"), 
+        selected=c("Confirmed", "Deaths"), width="100%"),
+      
+      # br() element to introduce extra vertical spacing ----
+      br(),
+      
+      # Input: Slider to change the Day 1 starting point ----
+      sliderInput("dayo", label=h5("Number of Infections for Day 0"),
+                  min = 0, max = 1000,
+                  value = 75),
+      sliderInput("dayocap", label=h5("Number of Infections/1000 for Day 0"),
+                  min = 0, max = 1,
+                  value = 0.05),
+      sliderInput("dayodeath", label=h5("Number of Deaths for Day 0"),
+                  min = 0, max = 100,
+                  value = 5),
+      sliderInput("dayodeathcap", label=h5("Number of Deaths/1000 for Day 0"),
+                  min = 0, max = 0.005,
+                  value = 0.0005)
+      
+    ),
+    
+    # Main panel for displaying outputs ----
+    mainPanel(
+      
+      # Output: Tabset w/ plot, summary, and table ----
+      tabsetPanel(type = "tabs",
+                  tabPanel("USA Total", 
+                           plotlyOutput("CumulatedPlot", width = "100%")
+                           ),
+                  tabPanel("Infectoin by State", 
+                           fluidRow(
+                             plotlyOutput("statePlot", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("linedupstatePlot", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("facetPlot1", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("lineduppercapitastatePlot", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("facetPlot2", width = "100%")
+                           )
+                          ),
+                  tabPanel("Death by State", 
+                           fluidRow(
+                             plotlyOutput("stateDeathPlot", width = "100%")
+                             ),
+                           fluidRow(
+                             plotlyOutput("linedupstatedeathPlot", width = "100%")
+                             ),
+                           fluidRow(
+                             plotlyOutput("facetPlot3", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("lineduppercapitadeahtstatePlot", width = "100%")
+                           ),
+                           fluidRow(
+                             plotlyOutput("facetPlot4", width = "100%")
+                           )
+                  )
+      ),  style='height: 2000px'
+      
     )
-  ),
-  fluidRow(
-    plotlyOutput("CumulatedPlot", width = "100%")
-  ),
-  fluidRow(
-    plotlyOutput("statePlot", width = "100%")
-  ),
-  fluidRow(
-    plotlyOutput("linedupstatePlot", width = "100%")
-  ),
-  fluidRow(
-    plotlyOutput("lineduppercapitastatePlot", width = "100%")
   )
-
-))
-
+)
