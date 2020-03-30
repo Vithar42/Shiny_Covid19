@@ -2,6 +2,7 @@
 # Johns Hopkins University Center for System Science and Engineering (JHU CCSE)
 
 library(tidyverse)
+library(scales)
 library(plotly)
 #source("~/datawrangle.R")
 
@@ -66,7 +67,7 @@ library(plotly)
 # Main FUnction ----
 function(input, output, session) {
   
-  # Plot for USA Total Tab ----
+  # Plot 1 for USA Total Tab ----
   output$CumulatedPlot = renderPlotly({
 
     df <- allData %>%
@@ -84,10 +85,38 @@ function(input, output, session) {
       scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
-      labs(title="Cumulative US Infections",
+      labs(title="Reported Cumulative US Infections",
            x ="Date", 
            y = "Infections")
 
+    ggplotly()
+    
+  })
+  
+  # Plot 2 for USA Total Tab ----
+  output$CumulatedPlotinfected = renderPlotly({
+    
+    df <- allData %>%
+      arrange(date) %>%
+      gather(key = "key", value = "value", Confirmed, Deaths) %>%
+      filter(value >= 0) %>%
+      filter(key %in% input$metrics) %>% 
+      group_by(date, key) %>% 
+      summarise(value = sum(value)) %>%
+      group_by(key) %>%
+      mutate(cumsum = cumsum(value)) %>%
+      mutate(infected = cumsum / (input$deathrate/100))
+    
+    ggplot(df, aes(x = date, y = infected, fill = key)) +
+      geom_bar(position="dodge", stat = "identity") +
+      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day")  +
+      scale_y_continuous(labels = comma) +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none") +
+      labs(title="Predicted Cumulative US Infections from death rate",
+           x ="Date", 
+           y = "Infections")
+    
     ggplotly()
     
   })
@@ -370,9 +399,136 @@ function(input, output, session) {
     
   })
   
+  # 1st Plot for infection prediction ----     
+  statedeathratedata = reactive({
+
+    df <- statedeathdata() %>%
+      mutate(infected = cumsum / (input$deathrate/100))
+    
+  })
   
+  output$stateDeathratePlot = renderPlotly({
+    
+    df <- statedeathratedata()
+    
+    ggplot(df, aes(x = date, y = infected, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none") +
+      labs(title="Predicted Infections by State",
+           x ="Date", 
+           y = "Deaths")
+    
+    ggplotly()
+    
+  })
   
+  # 2nd Plot for infection prediction ----  
+  linedupstatedeathratedata = reactive({
+    df <- statedeathratedata() %>%
+      group_by(state) %>%
+      mutate(dayNo = if_else(infected > input$dayo, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = cumsum(dayNo)) %>%
+      filter(dayNo >= 1)
+  })
   
+  output$linedupstatedeathratePlot = renderPlotly({
+    
+    df <- linedupstatedeathratedata()
+    
+    ggplot(df, aes(x = dayNo, y = infected, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
+      theme(legend.position = "none") +
+      labs(title="Deaths by State",
+           x = paste("Day from",input$dayo,"Deaths"),
+           y = "Deaths")
+    
+    ggplotly()
+    
+  })
+  
+  # 3rd Plot for infection prediction ----   
+  output$facetPlot5 = renderPlotly({
+    
+    df <- linedupstatedeathratedata() %>%
+      ungroup()
+    
+    df$state2 <- df$state
+    
+    ggplot(df, aes(x = dayNo, y = infected , color = state)) +
+      geom_line(data = df[,2:7], aes(x = dayNo, y = infected , group = state2), colour = "grey") +
+      geom_line() +
+      facet_wrap(~ state, scales = "free_y", ncol = 3) +
+      theme(legend.position = "none") 
+    
+    
+    ggplotly()
+    
+    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
+    
+  })
+  
+  # 4th Plot for infection prediction ----    
+  statecapita <- reactive({
+    
+    statePop <- statePop %>%
+      select(state = NAME, pop = CENSUS2010POP)
+    
+    
+    statedata <- linedupstatedeathratedata() %>%
+      select(state, dayNo, infected)
+    
+    statecapita <- statedata %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/100000,
+             conpercapita =  infected/pop) %>%
+      mutate(dayNo = if_else(conpercapita >= input$dayocap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = cumsum(dayNo)) %>%
+      filter(dayNo >= 1)
+    
+  })
+  
+  output$lineduppercapitastateratePlot = renderPlotly({
+    
+    df <- statecapita()
+    
+    ggplot(df, aes(x = dayNo, y = conpercapita, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
+      theme(legend.position = "none") +
+      labs(title="Predicted Infections by State",
+           x ="Day from 0.05 infections/100000", 
+           y = "Infections per 100000 people")
+    
+    ggplotly()
+    
+    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
+    
+  })
+  
+  # 5th Plot for infection prediction ----   
+  output$facetPlot6 = renderPlotly({
+    
+    df <- statecapita() %>%
+      ungroup()
+    
+    df$state2 <- df$state
+    
+    ggplot(df, aes(x = dayNo, y = conpercapita, color = state)) +
+      geom_line(data = df[,2:6], aes(x = dayNo, y = conpercapita, group = state2), colour = "grey") +
+      geom_line() +
+      facet_wrap(~ state, scales = "free_y", ncol = 3) +
+      theme(legend.position = "none") 
+    
+    
+    ggplotly()
+    
+    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
+    
+  })
 }
-
-

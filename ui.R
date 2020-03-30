@@ -52,7 +52,10 @@ ui <- fluidPage(
                   value = 5),
       sliderInput("dayodeathcap", label=h5("Number of Deaths/100000 for Day 0"),
                   min = 0, max = 1,
-                  value = 0.05)
+                  value = 0.05),
+      sliderInput("deathrate", label=h5("Death Rate [%]"),
+                  min = 0, max = 5, step = 0.1,
+                  value = 0.5)
       
     ),
     
@@ -62,7 +65,8 @@ ui <- fluidPage(
       # Output: Tabset w/ plot, summary, and table ----
       tabsetPanel(type = "tabs",
                   tabPanel("USA Total", 
-                           plotlyOutput("CumulatedPlot", width = "100%")
+                           plotlyOutput("CumulatedPlot", width = "100%"),
+                           plotlyOutput("CumulatedPlotinfected", width = "100%")
                            ),
                   tabPanel("Infections by State", 
                            fluidRow(
@@ -97,7 +101,24 @@ ui <- fluidPage(
                            fluidRow(
                              plotlyOutput("facetPlot4", width = "100%")
                            )
-                  )
+                           ),
+                  tabPanel("Predicted Infection", 
+                           fluidRow(
+                             plotlyOutput("stateDeathratePlot", width = "100%")
+                           ), 
+                           fluidRow(
+                             plotlyOutput("linedupstatedeathratePlot", width = "100%")
+                           ), 
+                           fluidRow(
+                             plotlyOutput("facetPlot5", width = "100%")
+                           ), 
+                           fluidRow(
+                             plotlyOutput("lineduppercapitastateratePlot", width = "100%")
+                           ), 
+                           fluidRow(
+                             plotlyOutput("facetPlot6", width = "100%")
+                           )
+                           )
       ),  style='height: 2000px'
       
     )
