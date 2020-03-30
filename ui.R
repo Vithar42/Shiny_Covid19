@@ -1,3 +1,6 @@
+library(shiny)
+library(plotly)
+
 # Define UI for random distribution app ----
 ui <- fluidPage(
   
@@ -41,15 +44,15 @@ ui <- fluidPage(
       sliderInput("dayo", label=h5("Number of Infections for Day 0"),
                   min = 0, max = 1000,
                   value = 75),
-      sliderInput("dayocap", label=h5("Number of Infections/1000 for Day 0"),
-                  min = 0, max = 1,
-                  value = 0.05),
+      sliderInput("dayocap", label=h5("Number of Infections/100000 for Day 0"),
+                  min = 0, max = 50,
+                  value = 1),
       sliderInput("dayodeath", label=h5("Number of Deaths for Day 0"),
                   min = 0, max = 100,
                   value = 5),
-      sliderInput("dayodeathcap", label=h5("Number of Deaths/1000 for Day 0"),
-                  min = 0, max = 0.005,
-                  value = 0.0005)
+      sliderInput("dayodeathcap", label=h5("Number of Deaths/100000 for Day 0"),
+                  min = 0, max = 1,
+                  value = 0.05)
       
     ),
     
@@ -61,7 +64,7 @@ ui <- fluidPage(
                   tabPanel("USA Total", 
                            plotlyOutput("CumulatedPlot", width = "100%")
                            ),
-                  tabPanel("Infectoin by State", 
+                  tabPanel("Infections by State", 
                            fluidRow(
                              plotlyOutput("statePlot", width = "100%")
                            ),

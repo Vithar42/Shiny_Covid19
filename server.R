@@ -117,7 +117,7 @@ function(input, output, session) {
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
       labs(title="Infections by State",
-           x ="Date", 
+           x ="Absoulte Date", 
            y = "Infections")
     
     ggplotly()
@@ -183,7 +183,7 @@ function(input, output, session) {
     
     statecapita <- statedata %>%
       left_join(statePop, by = "state") %>%
-      mutate(pop = pop/1000,
+      mutate(pop = pop/100000,
              conpercapita =  cumsum/pop) %>%
       mutate(dayNo = if_else(conpercapita >= input$dayocap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
@@ -201,8 +201,8 @@ function(input, output, session) {
       scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
       theme(legend.position = "none") +
       labs(title="Infections by State",
-           x ="Day from 0.05 infections/1000", 
-           y = "Infections per 1000 people")
+           x ="Day from 0.05 infections/100000", 
+           y = "Infections per 100000 people")
     
     ggplotly()
     
@@ -322,7 +322,7 @@ function(input, output, session) {
     
     statecapita <- statedata %>%
       left_join(statePop, by = "state") %>%
-      mutate(pop = pop/1000,
+      mutate(pop = pop/100000,
              conpercapita =  cumsum/pop) %>%
       mutate(dayNo = if_else(conpercapita >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
@@ -340,8 +340,8 @@ function(input, output, session) {
       scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
       theme(legend.position = "none") +
       labs(title="Deaths by State",
-           x = paste("Day from",input$dayodeathcap,"Deaths/1000"),
-           y = "Deaths per 1000 people")
+           x = paste("Day from",input$dayodeathcap,"Deaths/100000"),
+           y = "Deaths per 100000 people")
     
     ggplotly()
     
