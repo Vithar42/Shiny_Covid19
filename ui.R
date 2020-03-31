@@ -13,6 +13,15 @@ ui <- fluidPage(
     # Sidebar panel for inputs ----
     sidebarPanel(
       
+      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
+      checkboxGroupInput(
+        "metrics", label=h5("Selected Metrics"), 
+        choices=c("Confirmed", "Deaths"), 
+        selected=c("Confirmed", "Deaths"), width="100%"),
+      
+      # br() element to introduce extra vertical spacing ----
+      br(),
+      
       # Input: Select the random distribution type ----
       checkboxGroupInput(
         "states", label=h5("Selected States"), 
@@ -27,15 +36,6 @@ ui <- fluidPage(
                    "Wisconsin", "Wyoming"), 
         selected=c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"), 
         inline = TRUE),
-      
-      # br() element to introduce extra vertical spacing ----
-      br(),
-      
-      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
-      checkboxGroupInput(
-        "metrics", label=h5("Selected Metrics"), 
-        choices=c("Confirmed", "Deaths"), 
-        selected=c("Confirmed", "Deaths"), width="100%"),
       
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -65,62 +65,40 @@ ui <- fluidPage(
       # Output: Tabset w/ plot, summary, and table ----
       tabsetPanel(type = "tabs",
                   tabPanel("USA Total", 
+                           h2("USA Totals"),
+                           #br(),
+                           p("The first Graph is the cumulative Toatal Infections in the USA.  
+                             The Select Metrics inpute on the left sidebar lets you add adjsut what is visible on this graph."),
                            plotlyOutput("CumulatedPlot", width = "100%"),
+                           br(),
+                           p("This secong graph is a calculated theoretical level of infection based on the reported daily death count "),
                            plotlyOutput("CumulatedPlotinfected", width = "100%")
                            ),
                   tabPanel("Infections by State", 
-                           fluidRow(
-                             plotlyOutput("statePlot", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("linedupstatePlot", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("facetPlot1", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("lineduppercapitastatePlot", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("facetPlot2", width = "100%")
-                           )
+                           plotlyOutput("statePlot", width = "100%"),
+                           plotlyOutput("linedupstatePlot", width = "100%"),
+                           plotlyOutput("facetPlot1", width = "100%"),
+                           plotlyOutput("lineduppercapitastatePlot", width = "100%"),
+                           plotlyOutput("facetPlot2", width = "100%")
                           ),
                   tabPanel("Death by State", 
-                           fluidRow(
-                             plotlyOutput("stateDeathPlot", width = "100%")
-                             ),
-                           fluidRow(
-                             plotlyOutput("linedupstatedeathPlot", width = "100%")
-                             ),
-                           fluidRow(
-                             plotlyOutput("facetPlot3", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("lineduppercapitadeahtstatePlot", width = "100%")
-                           ),
-                           fluidRow(
-                             plotlyOutput("facetPlot4", width = "100%")
-                           )
+                           plotlyOutput("stateDeathPlot", width = "100%"),
+                           plotlyOutput("linedupstatedeathPlot", width = "100%"),
+                           plotlyOutput("facetPlot3", width = "100%"),
+                           plotlyOutput("lineduppercapitadeahtstatePlot", width = "100%"),
+                           plotlyOutput("facetPlot4", width = "100%")
                            ),
                   tabPanel("Predicted Infection", 
-                           fluidRow(
-                             plotlyOutput("stateDeathratePlot", width = "100%")
-                           ), 
-                           fluidRow(
-                             plotlyOutput("linedupstatedeathratePlot", width = "100%")
-                           ), 
-                           fluidRow(
-                             plotlyOutput("facetPlot5", width = "100%")
-                           ), 
-                           fluidRow(
-                             plotlyOutput("lineduppercapitastateratePlot", width = "100%")
-                           ), 
-                           fluidRow(
-                             plotlyOutput("facetPlot6", width = "100%")
+                           plotlyOutput("stateDeathratePlot", width = "100%"),
+                           plotlyOutput("linedupstatedeathratePlot", width = "100%"),
+                           plotlyOutput("facetPlot5", width = "100%"),
+                           plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
+                           plotlyOutput("facetPlot6", width = "100%")
+                           ),
+                  tabPanel("Predicted Infection", 
+                           
                            )
-                           )
-      ),  style='height: 2000px'
-      
+      )
     )
   )
 )

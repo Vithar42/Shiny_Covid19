@@ -52,16 +52,10 @@ library(plotly)
            Deaths = replace_na(Deaths, 0)) %>%
     arrange(state, date)
 
- #allData = 
- #  loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") %>%
- #    inner_join(loadData("time_series_covid19_deaths_global.csv", "CumDeaths"))
 
-
- 
-#allData = 
-#  loadData("time_series_covid19_confirmed_US.csv", "Confirmed") %>%
-#    inner_join(loadData("time_series_covid19_deaths_US.csv", "Deaths")) %>%
-#    inner_join(loadData("time_series_covid19_testing_US.csv", "testing"))
+  load("states-daily.csv")
+  newdata <- data %>%
+    as.Date(date)
 
 
 # Main FUnction ----
@@ -105,7 +99,7 @@ function(input, output, session) {
       summarise(value = sum(value)) %>%
       group_by(key) %>%
       mutate(cumsum = cumsum(value)) %>%
-      mutate(infected = cumsum / (input$deathrate/100))
+      mutate(infected = if_else((key == "Confirmed"),cumsum / (input$deathrate/100), cumsum))
     
     ggplot(df, aes(x = date, y = infected, fill = key)) +
       geom_bar(position="dodge", stat = "identity") +
