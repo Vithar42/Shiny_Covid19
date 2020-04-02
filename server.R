@@ -4,62 +4,107 @@
 library(tidyverse)
 library(scales)
 library(plotly)
-#source("~/datawrangle.R")
+source("datawrangle.R")
 
-# Johns Hopkins repository for COVID-19 data, https://github.com/CSSEGISandData/COVID-19
-#baseURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
-# baseURL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/archived_data/archived_time_series"
+# Pull in Data using datawrangler ----  
+# Pull in State population data from the sensus ----  
+filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
+statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
+  select(NAME, CENSUS2010POP )
 
-# f1 = list(family="Courier New, monospace", size=12, color="rgb(30,30,30)")
+# Pull in NewYorkTimes Data from https://github.com/cipriancraciun/covid19-datasets ----  
+baseURL <- "https://raw.githubusercontent.com/cipriancraciun/covid19-datasets/master/exports/nytimes/v1/us-counties/"
+fileName <- "values.tsv"
+allData <- NYtimes_tsv(fileName, baseURL)
 
-# minutesSinceLastUpdate = function(fileName) {
-#   (as.numeric(as.POSIXlt(Sys.time())) - as.numeric(file.info(fileName)$ctime)) / 60
-# }
-# 
-# loadData = function(fileName, columnName) {
-#   if(!file.exists(fileName) || minutesSinceLastUpdate(fileName) > 10) {
-#     data = read.csv(file.path(baseURL, fileName), check.names=FALSE, stringsAsFactors=FALSE) %>%
-#       select(-Lat, -Long) %>% 
-#       pivot_longer(-(1:2), names_to="date", values_to=columnName) %>% 
-#       mutate(
-#         date=as.Date(date, format="%m/%d/%y"),
-#         `Country/Region`=if_else(`Country/Region` == "", "?", `Country/Region`),
-#         `Province/State`=if_else(`Province/State` == "", "<all>", `Province/State`)
-#       )
-#     save(data, file=fileName)  
-#   } else {
-#     load(file=fileName)
-#   }
-#   return(data)
-# }
-# 
-# 
-#   allData = 
-#     loadData("time_series_19-covid-Confirmed_archived_0325.csv", "CumConfirmed") %>%
-#     inner_join(loadData("time_series_19-covid-Deaths_archived_0325.csv", "CumDeaths"))
+# Pull in covidtracking.com Data from https://github.com/garykac/covid19/tree/master/data ----  
+baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
+fileName <- "states-daily.csv"
+hosdata <- garykac_csv("states-daily.csv", baseURL)
 
-  filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
-  statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
-    select(NAME, CENSUS2010POP )
-  
-  load("values.tsv")
-  allData <- data %>%
-    filter(is.na(administrative)) %>%
-    select(state = province, date, Confirmed = delta_confirmed, Deaths = delta_deaths) %>%
-    filter(state %in% state.name,
-           date > "2020-03-01") %>%
-    mutate(Confirmed = replace_na(Confirmed, 0),
-           Deaths = replace_na(Deaths, 0)) %>%
-    arrange(state, date)
-
-
-  load("states-daily.csv")
-  newdata <- data %>%
-    as.Date(date)
-
-
-# Main FUnction ----
+# Main Shiny Function ----  
 function(input, output, session) {
+  
+  # Reused Plot Functions ----
+  # used for 1st plot on each tab
+  DateStateCompPlot <- function(MyData, titlelab, Ylab) {
+    # data must contain date, value, and state columns
+    p <- ggplot(MyData, aes(x = date, y = value, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_date(date_labels = "%b-%d", date_breaks  = "1 day") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none") +
+      labs(title = titlelab,
+           x = "Date", 
+           y = Ylab)
+    
+    return(p)
+  }
+  
+  # used for n plots on Hospiliation tab
+  CountPlotFunction <- function(MyData, ii) {
+    
+    MyData <- MyData %>%
+      ungroup()
+    
+    MyData$state2 <- MyData$state
+    
+    MyPlot <- ggplot(MyData %>% filter(state == input$states[[ii]]), aes(x = date, y = hospitalized, color = state)) +
+      geom_line(data = MyData[,2:14], aes(x = date, y = hospitalized, group = state2), colour = "grey") +
+      geom_point() +
+      geom_line() + 
+      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") + 
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = "none") + 
+      labs(title=paste("Hospitalizations in",input$states[[ii]]),
+           x ="Absoulte Date", 
+           y = "Hospitalizations")
+    
+    return(MyPlot)
+  }
+  
+  # used for 2nd plots on all tabs
+  slidestartdatePlotFunction <- function(MyData, titlelab, Ylab, slidedate) {
+    
+    MyPlot <- ggplot(MyData, aes(x = dayNo, y = cumsum, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
+      theme(legend.position = "none") +
+      labs(title = titlelab,
+           x = paste("Day from",slidedate,"infections"), 
+           y = Ylab)
+
+    return(MyPlot)
+  }
+  
+  # used for facet plots on all tabs
+  facetPlotFunction <- function(MyData) {
+    
+    MyPlot <- ggplot(MyData, aes(x = dayNo, y = plotvalue , color = state)) +
+      geom_line(data = MyData[,2:length(names(MyData))], aes(x = dayNo, y = plotvalue , group = state2), colour = "grey") +
+      geom_line() +
+      facet_wrap(~ state, scales = "free_y", ncol = 3) +
+      theme(legend.position = "none") 
+    
+    return(MyPlot)
+  }
+  
+  # used for 4th plots on all tabs
+  slidestartdatePopPlotFunction <- function(MyData, titlelab, Ylab, slidedate) {
+    
+    MyPlot <- ggplot(MyData, aes(x = dayNo, y = conpercapita, colour = state)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
+      theme(legend.position = "none") +
+      labs(title="Infections by State",
+          x ="Day from 0.05 infections/100000", 
+          y = "Infections per 100000 people")
+    
+    return(MyPlot)
+  }
   
   # Plot 1 for USA Total Tab ----
   output$CumulatedPlot = renderPlotly({
@@ -131,18 +176,11 @@ function(input, output, session) {
   
   output$statePlot = renderPlotly({
     
-    df <- statedata()
-
-    ggplot(df, aes(x = date, y = cumsum, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
-      theme(axis.text.x = element_text(angle = 90),
-            legend.position = "none") +
-      labs(title="Infections by State",
-           x ="Absoulte Date", 
-           y = "Infections")
+    df <- statedata() %>%
+      rename(delta_value = value, value = cumsum)
     
+    DateStateCompPlot(df, "Infections by State", "Reported Infections")
+
     ggplotly()
     
   })
@@ -160,15 +198,8 @@ function(input, output, session) {
     
     df <- linedupstatedata()
     
-    ggplot(df, aes(x = dayNo, y = cumsum, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Infections by State",
-           x = paste("Day from",input$dayo,"infections"), 
-           y = "Infections")
-    
+    slidestartdatePlotFunction(df, "Infections by State", "Infections", input$dayo)
+
     ggplotly()
     
   })
@@ -177,24 +208,20 @@ function(input, output, session) {
   output$facetPlot1 = renderPlotly({
     
     df <- linedupstatedata() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = cumsum)
     
     df$state2 <- df$state
     
-    ggplot(df, aes(x = dayNo, y = cumsum , color = state)) +
-      geom_line(data = df[,2:6], aes(x = dayNo, y = cumsum , group = state2), colour = "grey") +
-      geom_line() +
-      facet_wrap(~ state, scales = "free_y", ncol = 3) +
-      theme(legend.position = "none") 
-    
-    
+    facetPlotFunction(df)
+
     ggplotly()
     
     #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
     
   })
 
-  # 4th Plot for Infection by State Tab ----    
+  # 4th Plot for Infection by State Tab -----    
   statecapita <- reactive({
     
     statePop <- statePop %>%
@@ -218,40 +245,25 @@ function(input, output, session) {
     
     df <- statecapita()
     
-    ggplot(df, aes(x = dayNo, y = conpercapita, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Infections by State",
-           x ="Day from 0.05 infections/100000", 
-           y = "Infections per 100000 people")
-    
+    slidestartdatePopPlotFunction(df, "Infections by State", "Infections per 100000 people", input$dayocap)
+
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
 
   # 5th Plot for Infection by State Tab ----   
   output$facetPlot2 = renderPlotly({
     
     df <- statecapita() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = conpercapita)
  
     df$state2 <- df$state
     
-     ggplot(df, aes(x = dayNo, y = conpercapita, color = state)) +
-       geom_line(data = df[,2:6], aes(x = dayNo, y = conpercapita, group = state2), colour = "grey") +
-       geom_line() +
-       facet_wrap(~ state, scales = "free_y", ncol = 3) +
-       theme(legend.position = "none") 
-    
-    
+    facetPlotFunction(df)
+
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
   
   # 1st Plot for Deaths by State Tab ----   
@@ -259,8 +271,8 @@ function(input, output, session) {
     df <- allData %>%
       select(-Confirmed) %>%
       group_by(state, date) %>%
-      #filter(state == "New Jersey") %>%
-     filter(state %in% input$states) %>% 
+      # filter(state == "New Jersey") %>%
+      filter(state %in% input$states) %>% 
       gather(key = "key", value = "value", Deaths) %>%
       group_by(state, date) %>% 
       summarise(value = sum(value)) %>%
@@ -270,18 +282,11 @@ function(input, output, session) {
   
   output$stateDeathPlot = renderPlotly({
     
-    df <- statedeathdata()
+    df <- statedeathdata() %>%
+      rename(delta_value = value, value = cumsum)
     
-    ggplot(df, aes(x = date, y = cumsum, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
-      theme(axis.text.x = element_text(angle = 90),
-            legend.position = "none") +
-      labs(title="Infections by State",
-           x ="Date", 
-           y = "Deaths")
-    
+    DateStateCompPlot(df, "Dearhs by State", "Reported Deaths")
+
     ggplotly()
     
   })
@@ -299,15 +304,8 @@ function(input, output, session) {
     
     df <- linedupstatedeathdata()
     
-    ggplot(df, aes(x = dayNo, y = cumsum, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Deaths by State",
-           x = paste("Day from",input$dayodeath,"Deaths"),
-           y = "Deaths")
-    
+    slidestartdatePlotFunction(df, "Deaths by State", "Deaths", input$dayodeath)
+
     ggplotly()
     
   })
@@ -316,21 +314,15 @@ function(input, output, session) {
   output$facetPlot3 = renderPlotly({
     
     df <- linedupstatedeathdata() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = cumsum)
     
     df$state2 <- df$state
     
-    ggplot(df, aes(x = dayNo, y = cumsum , color = state)) +
-      geom_line(data = df[,2:6], aes(x = dayNo, y = cumsum , group = state2), colour = "grey") +
-      geom_line() +
-      facet_wrap(~ state, scales = "free_y", ncol = 3) +
-      theme(legend.position = "none") 
-    
-    
+    facetPlotFunction(df)
+
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
   
   # 4th Plot for Deaths by State Tab ----    
@@ -357,40 +349,25 @@ function(input, output, session) {
     
     df <- statecapitadeath()
     
-    ggplot(df, aes(x = dayNo, y = conpercapita, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Deaths by State",
-           x = paste("Day from",input$dayodeathcap,"Deaths/100000"),
-           y = "Deaths per 100000 people")
-    
+    slidestartdatePopPlotFunction(df, "Deaths by State", "Deaths per 100000 people", input$dayodeathcap)
+
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
   
   # 5th Plot for Deaths by State Tab ----   
   output$facetPlot4 = renderPlotly({
     
     df <- statecapitadeath() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = conpercapita)
     
     df$state2 <- df$state
     
-    ggplot(df, aes(x = dayNo, y = conpercapita, color = state)) +
-      geom_line(data = df[,2:6], aes(x = dayNo, y = conpercapita, group = state2), colour = "grey") +
-      geom_line() +
-      facet_wrap(~ state, scales = "free_y", ncol = 3) +
-      theme(legend.position = "none") 
-    
+    facetPlotFunction(df)
     
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
   
   # 1st Plot for infection prediction ----     
@@ -403,18 +380,11 @@ function(input, output, session) {
   
   output$stateDeathratePlot = renderPlotly({
     
-    df <- statedeathratedata()
+    df <- statedeathratedata() %>%
+      rename(delta_value = value, value = infected)
     
-    ggplot(df, aes(x = date, y = infected, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
-      theme(axis.text.x = element_text(angle = 90),
-            legend.position = "none") +
-      labs(title="Predicted Infections by State",
-           x ="Date", 
-           y = "Deaths")
-    
+    DateStateCompPlot(df, "Predicted Infections by State", "Predicted Infections")
+
     ggplotly()
     
   })
@@ -432,15 +402,8 @@ function(input, output, session) {
     
     df <- linedupstatedeathratedata()
     
-    ggplot(df, aes(x = dayNo, y = infected, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Deaths by State",
-           x = paste("Day from",input$dayo,"Deaths"),
-           y = "Deaths")
-    
+    slidestartdatePlotFunction(df, "Infections by State", "Deaths", input$dayo)
+
     ggplotly()
     
   })
@@ -449,21 +412,15 @@ function(input, output, session) {
   output$facetPlot5 = renderPlotly({
     
     df <- linedupstatedeathratedata() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = infected)
     
     df$state2 <- df$state
     
-    ggplot(df, aes(x = dayNo, y = infected , color = state)) +
-      geom_line(data = df[,2:7], aes(x = dayNo, y = infected , group = state2), colour = "grey") +
-      geom_line() +
-      facet_wrap(~ state, scales = "free_y", ncol = 3) +
-      theme(legend.position = "none") 
-    
-    
+    facetPlotFunction(df)
+
     ggplotly()
-    
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
+
   })
   
   # 4th Plot for infection prediction ----    
@@ -490,14 +447,7 @@ function(input, output, session) {
     
     df <- statecapita()
     
-    ggplot(df, aes(x = dayNo, y = conpercapita, colour = state)) +
-      geom_point() +
-      geom_line() +
-      scale_x_continuous(breaks = seq(0,max(df$dayNo),1)) +
-      theme(legend.position = "none") +
-      labs(title="Predicted Infections by State",
-           x ="Day from 0.05 infections/100000", 
-           y = "Infections per 100000 people")
+    slidestartdatePopPlotFunction(df, "Predicted Infections by State", "Infections per 100000 people", input$dayocap)
     
     ggplotly()
     
@@ -509,20 +459,67 @@ function(input, output, session) {
   output$facetPlot6 = renderPlotly({
     
     df <- statecapita() %>%
-      ungroup()
+      ungroup() %>%
+      rename(plotvalue = conpercapita)
     
     df$state2 <- df$state
     
-    ggplot(df, aes(x = dayNo, y = conpercapita, color = state)) +
-      geom_line(data = df[,2:6], aes(x = dayNo, y = conpercapita, group = state2), colour = "grey") +
-      geom_line() +
-      facet_wrap(~ state, scales = "free_y", ncol = 3) +
-      theme(legend.position = "none") 
+    facetPlotFunction(df)
     
+    ggplotly()
+
+  })
+  
+  # 1st plot for hospilizatoins tab ----
+  hospedata = reactive({
+    df <- hosdata %>%
+      filter(state %in% input$states)
+  })
+  
+  output$statehospilizations = renderPlotly({
+    
+    df <- hospedata() %>%
+      rename(value = hospitalized)
+    
+    DateStateCompPlot(df, "Predicted Infections by State", "Predicted Infections")
     
     ggplotly()
     
-    #assuming 3% mortality, 25% daily spread, 19 days between infection and death)
-    
   })
+  
+  # 2nd Plot for hospilizatoins tab ----  
+
+  
+  # 3rd Plot for hospilizatoins tab ----   
+
+  
+  # 4 to n Plot for hospilizatoins tab ---- 
+  # gen plot containers
+  output$ui_plot <- renderUI({ 
+    out <- list()
+    if (length(input$states) == 0) {
+      return(NULL)
+    }
+    
+    for (i in 1:length(input$states)){
+      out[[i]] <-  plotlyOutput(paste0("plot",i), width = "100%")
+    }  
+    return(out) 
+  })
+
+  # observer to fill the plot containers
+  observe({  
+    for (i in 1:length(input$states)){  
+      local({  #because expressions are evaluated at app init
+        ii <- i 
+        output[[paste0('plot',ii)]] <- renderPlotly({ 
+          if ( length(input$states) > ii-1 ){  
+            return(CountPlotFunction(hospedata(), ii))
+          } 
+          NULL
+        })
+      })
+    }                                  
+  })
+  
 }

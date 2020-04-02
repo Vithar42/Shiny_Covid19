@@ -14,46 +14,43 @@ ui <- fluidPage(
     sidebarPanel(
       
       # Input: checkbox for USA Total graph to show confirmations and or deaths ----
-      checkboxGroupInput(
-        "metrics", label=h5("Selected Metrics"), 
-        choices=c("Confirmed", "Deaths"), 
-        selected=c("Confirmed", "Deaths"), width="100%"),
+      checkboxGroupInput("metrics", 
+                         label=h5("Selected Metrics"), 
+                         choices=c("Confirmed", "Deaths"),
+                         selected=c("Confirmed", "Deaths"), width="100%"),
       
       # br() element to introduce extra vertical spacing ----
       br(),
       
       # Input: Select the random distribution type ----
-      checkboxGroupInput(
-        "states", label=h5("Selected States"), 
-        choices= c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
-                   "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", 
-                   "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", 
-                   "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", 
-                   "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", 
-                   "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", 
-                   "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", 
-                   "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", 
-                   "Wisconsin", "Wyoming"), 
-        selected=c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"), 
-        inline = TRUE),
+      checkboxGroupInput("states", 
+                         label=h5("Selected States"), 
+                         choices = state.name,
+                         selected=c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+                         inline = TRUE),
       
       # br() element to introduce extra vertical spacing ----
       br(),
       
       # Input: Slider to change the Day 1 starting point ----
-      sliderInput("dayo", label=h5("Number of Infections for Day 0"),
-                  min = 0, max = 1000,
+      sliderInput("dayo", 
+                  label=h5("Number of Infections for Day 0"),
+                  min = 0, max = 200,
                   value = 75),
-      sliderInput("dayocap", label=h5("Number of Infections/100000 for Day 0"),
-                  min = 0, max = 50,
+      sliderInput("dayocap", 
+                  label=h5("Number of Infections/100000 for Day 0"),
+                  min = 0, max = 75,
                   value = 1),
-      sliderInput("dayodeath", label=h5("Number of Deaths for Day 0"),
+      sliderInput("dayodeath", 
+                  label=h5("Number of Deaths for Day 0"),
                   min = 0, max = 100,
                   value = 5),
-      sliderInput("dayodeathcap", label=h5("Number of Deaths/100000 for Day 0"),
+      sliderInput("dayodeathcap", 
+                  label=h5("Number of Deaths/100000 for Day 0"),
                   min = 0, max = 1,
                   value = 0.05),
-      sliderInput("deathrate", label=h5("Death Rate [%]"),
+      sliderInput("deathrate", 
+                  label=h5("Death Rate [%]"),
                   min = 0, max = 5, step = 0.1,
                   value = 0.5)
       
@@ -95,8 +92,9 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
                            plotlyOutput("facetPlot6", width = "100%")
                            ),
-                  tabPanel("Predicted Infection", 
-                           
+                  tabPanel("Hospitilizatoins", 
+                           plotlyOutput("statehospilizations", width = "100%"),
+                           uiOutput("ui_plot")
                            )
       )
     )
