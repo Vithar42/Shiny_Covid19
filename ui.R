@@ -15,42 +15,53 @@ ui <- fluidPage(
       
       # Input: checkbox for USA Total graph to show confirmations and or deaths ----
       checkboxGroupInput("metrics", 
-                         label=h5("Selected Metrics"), 
-                         choices=c("Confirmed", "Deaths"),
-                         selected=c("Confirmed", "Deaths"), width="100%"),
+                         label = h5("Selected Metrics"), 
+                         choices = c("positive", "death"),
+                         selected = c("positive", "death"), width = "100%"),
       
       # br() element to introduce extra vertical spacing ----
       br(),
       
       # Input: Select the random distribution type ----
       checkboxGroupInput("states", 
-                         label=h5("Selected States"), 
+                         label = h5("Selected States"), 
                          choices = state.name,
-                         selected=c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+                         selected = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
                          inline = TRUE),
       
       # br() element to introduce extra vertical spacing ----
       br(),
       
       # Input: Slider to change the Day 1 starting point ----
+      # Plot 2 sliders
       sliderInput("dayo", 
-                  label=h5("Number of Infections for Day 0"),
-                  min = 0, max = 200,
-                  value = 75),
-      sliderInput("dayocap", 
-                  label=h5("Number of Infections/100000 for Day 0"),
-                  min = 0, max = 75,
-                  value = 1),
+                  label = h5("Number of Infections for Day 0"),
+                  min = 0, max = 500,
+                  value = 100),
       sliderInput("dayodeath", 
-                  label=h5("Number of Deaths for Day 0"),
-                  min = 0, max = 100,
+                  label = h5("Number of Deaths for Day 0"),
+                  min = 0, max = 500,
                   value = 5),
+      sliderInput("dayohosp", 
+                  label = h5("Number of Hospitilizatoins for Day 0"),
+                  min = 0, max = 500,
+                  value = 25),
+      # Plot 4 sliders
+      sliderInput("dayocap", 
+                  label = h5("Number of Infections/100000 for Day 0"),
+                  min = 0, max = 25, step = 0.5,
+                  value = 1),
       sliderInput("dayodeathcap", 
-                  label=h5("Number of Deaths/100000 for Day 0"),
-                  min = 0, max = 1,
-                  value = 0.05),
+                  label = h5("Number of Death/100000s for Day 0"),
+                  min = 0, max = 5, step = 0.1,
+                  value = .5),
+      sliderInput("dayohospcap", 
+                  label = h5("Number of Hospitilizatoins/100000 for Day 0"),
+                  min = 0, max = 5, step = 0.1,
+                  value = .5),
+      # Prediction Slider
       sliderInput("deathrate", 
-                  label=h5("Death Rate [%]"),
+                  label = h5("Death Rate [%]"),
                   min = 0, max = 5, step = 0.1,
                   value = 0.5)
       
@@ -93,8 +104,11 @@ ui <- fluidPage(
                            plotlyOutput("facetPlot6", width = "100%")
                            ),
                   tabPanel("Hospitilizatoins", 
-                           plotlyOutput("statehospilizations", width = "100%"),
-                           uiOutput("ui_plot")
+                           plotlyOutput("StateHospPlot", width = "100%"),
+                           plotlyOutput("SlideStateHospPlot", width = "100%"),
+                           plotlyOutput("facetPlot7", width = "100%"),
+                           plotlyOutput("SlideStateHospPopPlot", width = "100%"),
+                           plotlyOutput("facetPlot8", width = "100%")
                            )
       )
     )

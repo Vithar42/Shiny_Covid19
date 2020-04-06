@@ -6,8 +6,9 @@
 #
 # New Data source https://github.com/garykac/covid19 contains positive and negative testing results and Hospitalizations
 # his data is a repakaging for usabaility the data from the https://covidtracking.com/ which is also possibly the NY Times source
- 
-#### Function to check if it data is older than an hour ####
+
+#### Data loading functoins ----
+#### Function to check if it data is older than an hour ----
 minutesSinceLastUpdate = function(fileName) {
  (as.numeric(as.POSIXlt(Sys.time())) - as.numeric(file.info(fileName)$ctime)) / 60
 }
@@ -73,3 +74,84 @@ garykac_csv = function(fileName, baseURL) {
 }
 
 
+# Reused Plot Functions ----
+# used for 1st plot on each tab
+DateStateCompPlot <- function(MyData, var, titlelab, Ylab) {
+  
+  p <- ggplot(MyData, aes_string(x = "date", y = var, colour = "state")) +
+    geom_point() +
+    geom_line() +
+    scale_x_date(date_labels = "%b-%d", date_breaks  = "1 day") +
+    theme(axis.text.x = element_text(angle = 90),
+          legend.position = "none") +
+    labs(title = titlelab,
+         x = "Date", 
+         y = Ylab)
+  
+  return(p)
+}
+
+# used for n plots on Hospiliation tab
+CountPlotFunction <- function(MyData, ii) {
+  
+  MyData <- MyData %>%
+    ungroup()
+  
+  MyData$state2 <- MyData$state
+  
+  MyPlot <- ggplot(MyData %>% filter(state == input$states[[ii]]), aes(x = date, y = hospitalized, color = state)) +
+    geom_line(data = MyData[,2:14], aes(x = date, y = hospitalized, group = state2), colour = "grey") +
+    geom_point() +
+    geom_line() + 
+    scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") + 
+    theme(axis.text.x = element_text(angle = 90),
+          legend.position = "none") + 
+    labs(title=paste("Hospitalizations in",input$states[[ii]]),
+         x ="Absoulte Date", 
+         y = "Hospitalizations")
+  
+  return(MyPlot)
+}
+
+# used for 2nd plots on all tabs
+slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate) {
+  
+  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
+    geom_point() +
+    geom_line() +
+    scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
+    theme(legend.position = "none") +
+    labs(title = titlelab,
+         x = paste("Day from",slidedate,"infections"), 
+         y = Ylab)
+  
+  return(MyPlot)
+}
+
+# used for facet plots on all tabs
+facetPlotFunction <- function(MyData, var) {
+  
+  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var , color = "state")) +
+    geom_line(data = MyData[,2:length(names(MyData))], aes_string(x = "dayNo", y = var , group = "state2"), colour = "grey") +
+    geom_line() +
+    facet_wrap(~ state, scales = "free_y", ncol = 3) +
+    theme(legend.position = "none") 
+  
+  return(MyPlot)
+}
+
+# used for 4th plots on all tabs
+slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate) {
+
+  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
+    geom_point() +
+    geom_line() +
+    scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
+    theme(legend.position = "none") +
+    labs(title = titlelab,
+         x = paste("Day from",slidedate,"infections/100000"), 
+         y = Ylab)
+  
+  return(MyPlot)
+  
+}
