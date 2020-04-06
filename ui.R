@@ -90,7 +90,8 @@ ui <- fluidPage(
                              The Select Metrics inpute on the left sidebar lets you add adjsut what is visible on this graph."),
                            plotlyOutput("CumulatedPlot", width = "100%"),
                            br(),
-                           p("This secong graph is a calculated theoretical level of infection based on the reported daily death count "),
+                           p("This secong graph is a calculated theoretical level of infection based on the reported daily death count.  
+                             The graph stacks the thoretical missing tests with the confirmed positives."),
                            plotlyOutput("CumulatedPlotinfected", width = "100%")
                            ),
                   tabPanel("Infections by State", 

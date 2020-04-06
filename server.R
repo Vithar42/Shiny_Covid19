@@ -26,8 +26,9 @@ alldata <- garykac_csv("states-daily.csv", baseURL)
 function(input, output, session) {
 
   # to use to simulate input when testing
-  # input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
-  #               metrics = c("positive", "death"))
+   # input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+   #               metrics = c("positive", "death"),
+   #               deathrate = c(0.5))
 
   # Reactive data prep
   statedata = reactive({
@@ -55,7 +56,7 @@ function(input, output, session) {
       group_by(date, key) %>% 
       summarise(value = sum(value))
     
-    ggplot(df, aes(x = date, y = value, fill = key)) +
+    p <- ggplot(df, aes(x = date, y = value, fill = key)) +
       geom_bar(position="dodge", stat = "identity") +
       scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
       theme(axis.text.x = element_text(angle = 90),
@@ -64,35 +65,75 @@ function(input, output, session) {
            x ="Date", 
            y = "Infections")
 
-    ggplotly()
+    
+    if (input$logscaletoggle == "Log") {
+      p <- p + scale_y_log10(labels = comma)
+      gp <- ggplotly(p)
+      df2 <- df %>% filter(key == "death")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />key:", df2$key)
+      df3 <- df %>% filter(key == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />key:", df3$key)
+      gp
+      
+    } else {
+      p <- p + scale_y_continuous(labels = comma)
+      gp <- ggplotly(p)
+      df2 <- df %>% filter(key == "death")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />key:", df2$key)
+      df3 <- df %>% filter(key == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />key:", df3$key)
+      gp
+    }
     
   })
   
   # Plot 2 for USA Total Tab ----
   output$CumulatedPlotinfected = renderPlotly({
-    
+
     df <- alldata %>%
-      arrange(date) %>%
-      gather(key = "key", value = "value", positive, death) %>%
-      filter(value >= 0) %>%
-      filter(key %in% input$metrics) %>% 
-      group_by(date, key) %>% 
+      group_by(date) %>%
+      select(date, death, positive) %>%
+      pivot_longer(cols = c(death, positive)) %>% 
+      group_by(date, name) %>%
       summarise(value = sum(value)) %>%
-      group_by(key) %>%
-      mutate(cumsum = cumsum(value)) %>%
-      mutate(infected = if_else((key == "positive"),cumsum / (input$deathrate/100), cumsum))
-    
-    ggplot(df, aes(x = date, y = infected, fill = key)) +
-      geom_bar(position="dodge", stat = "identity") +
+      pivot_wider(id_cols = date,
+                  names_from = name,
+                  values_from = value) %>%
+      mutate(infected = death / (input$deathrate/100)) %>%
+      mutate(missingtests = infected - positive) %>%
+      pivot_longer(cols = c(positive, missingtests))
+
+      
+    p <- ggplot(df, aes(x = date, y = value, fill = name),) +
+      geom_bar(stat = "identity") +
       scale_x_date(date_labels="%b-%d",date_breaks  ="1 day")  +
-      scale_y_continuous(labels = comma) +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
       labs(title="Predicted Cumulative US Infections from death rate",
            x ="Date", 
            y = "Infections")
     
-    ggplotly()
+    
+    if (input$logscaletoggle == "Log") {
+      p <- p + scale_y_log10(labels = comma)
+      gp <- ggplotly(p)
+      df2 <- df %>% filter(name == "missingtests")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp
+      
+    } else {
+      p <- p + scale_y_continuous(labels = comma)
+      gp <- ggplotly(p)
+      df2 <- df %>% filter(name == "missingtests")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp
+    }
+      
+
     
   })
   
