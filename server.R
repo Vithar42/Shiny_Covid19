@@ -102,7 +102,7 @@ function(input, output, session) {
     df <- statedata() %>%
       filter(state %in% input$states) 
     
-    DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections")
+    DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections", input$logscaletoggle)
 
     ggplotly()
     
@@ -117,7 +117,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePlotFunction(df, "positive", "Infections by State", "Infections", input$dayo)
+    slidestartdatePlotFunction(df, "positive", "Infections by State", "Infections", input$dayo, input$logscaletoggle)
     
     ggplotly()
     
@@ -134,7 +134,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"positive")
+    facetPlotFunction(df,"positive", input$logscaletoggle)
 
     ggplotly()
 
@@ -149,7 +149,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
       
-    slidestartdatePopPlotFunction(df, "positivepop", "Infections by State", "Infections per 100000 people", input$dayocap)
+    slidestartdatePopPlotFunction(df, "positivepop", "Infections by State", "Infections per 100000 people", input$dayocap, input$logscaletoggle)
 
     ggplotly()
 
@@ -166,7 +166,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"positivepop")
+    facetPlotFunction(df,"positivepop", input$logscaletoggle)
     
     ggplotly()
     
@@ -178,7 +178,7 @@ function(input, output, session) {
     df <- statedata() %>%
       filter(state %in% input$states) 
     
-    DateStateCompPlot(df, "death", "Deaths by State", "Reported Deaths")
+    DateStateCompPlot(df, "death", "Deaths by State", "Reported Deaths", input$logscaletoggle)
     
     ggplotly()
     
@@ -193,7 +193,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
 
-    slidestartdatePlotFunction(df, "death", "Deaths by State", "Deaths", input$dayodeath)
+    slidestartdatePlotFunction(df, "death", "Deaths by State", "Deaths", input$dayodeath, input$logscaletoggle)
     
     ggplotly()
     
@@ -210,7 +210,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"death")
+    facetPlotFunction(df,"death", input$logscaletoggle)
     
     ggplotly()
 
@@ -225,7 +225,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayodeathcap)
+    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayodeathcap, input$logscaletoggle)
     
     ggplotly()
     
@@ -242,7 +242,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"deathpop")
+    facetPlotFunction(df,"deathpop", input$logscaletoggle)
     
     ggplotly()
 
@@ -252,9 +252,9 @@ function(input, output, session) {
   output$stateDeathratePlot = renderPlotly({
     
     df <- statedata() %>%
-      mutate(infected = positive / (input$deathrate/100))
+      mutate(infected = death / (input$deathrate/100))
     
-    DateStateCompPlot(df, "infected", "Predicted Infections by State", "Predicted Infections")
+    DateStateCompPlot(df, "infected", "Predicted Infections by State", "Predicted Infections", input$logscaletoggle)
     
     ggplotly()
     
@@ -265,12 +265,12 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positive > input$dayo, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(death > input$dayodeathcap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
-      mutate(infected = positive / (input$deathrate/100)) 
+      mutate(infected = death / (input$deathrate/100)) 
     
-    slidestartdatePlotFunction(df, "infected", "Infections by State", "Infections", input$dayo)
+    slidestartdatePlotFunction(df, "infected", "Infections by State", "Infections", input$dayodeathcap, input$logscaletoggle)
     
     ggplotly()
     
@@ -281,14 +281,14 @@ function(input, output, session) {
  
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positive > input$dayo, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(death > input$dayodeathcap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
-      mutate(infected = positive / (input$deathrate/100)) 
+      mutate(infected = death / (input$deathrate/100)) 
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"infected")
+    facetPlotFunction(df,"infected", input$logscaletoggle)
     
     ggplotly()
 
@@ -299,12 +299,12 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positivepop >= input$dayocap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(deathpop >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
-      mutate(infected = positivepop / (input$deathrate/100)) 
+      mutate(infected = deathpop / (input$deathrate/100)) 
     
-    slidestartdatePopPlotFunction(df, "infected", "Infections by State", "Infections per 100000 people", input$dayocap)
+    slidestartdatePopPlotFunction(df, "infected", "Infections by State", "Infections per 100000 people", input$dayodeathcap, input$logscaletoggle)
     
     ggplotly()
     
@@ -312,35 +312,17 @@ function(input, output, session) {
   
   # 5th Plot for infection prediction ----   
   output$facetPlot6 = renderPlotly({
-    
-    # df <- statecapita() %>%
-    #   ungroup() %>%
-    #   rename(plotvalue = conpercapita)
-    # 
-    # df$state2 <- df$state
-    # 
-    # facetPlotFunction(df, "infected")
-    # 
-    # ggplotly()
-    # 
-    # 
-    
-    # df <- statedata() %>%
-    #   group_by(state) %>%
-    #   mutate(dayNo = if_else(positivepop > input$dayocap, 1, 0, missing = NULL)) %>%
-    #   mutate(dayNo = cumsum(dayNo)) %>%
-    #   filter(dayNo >= 1)
-    
+
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positivepop >= input$dayocap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(deathpop >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
-      mutate(infected = positivepop / (input$deathrate/100)) 
+      mutate(infected = deathpop / (input$deathrate/100)) 
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"infected")
+    facetPlotFunction(df,"infected", input$logscaletoggle)
     
     ggplotly()
 
@@ -351,7 +333,7 @@ function(input, output, session) {
     
     df <- statedata()
     
-    DateStateCompPlot(df, "hospitalized", "Hospitalizations by State", "Reported Hospitalizations")
+    DateStateCompPlot(df, "hospitalized", "Hospitalizations by State", "Reported Hospitalizations", input$logscaletoggle)
     
     ggplotly()
     
@@ -366,7 +348,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePlotFunction(df, "hospitalized", "Hospitalizations by State", "Reported Hospitalizations", input$dayohosp)
+    slidestartdatePlotFunction(df, "hospitalized", "Hospitalizations by State", "Reported Hospitalizations", input$dayohosp, input$logscaletoggle)
     
     ggplotly()
     
@@ -383,7 +365,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"hospitalized")
+    facetPlotFunction(df,"hospitalized", input$logscaletoggle)
     
     ggplotly()
     
@@ -398,7 +380,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayohospcap)
+    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayohospcap, input$logscaletoggle)
     
     ggplotly()
     
@@ -416,7 +398,7 @@ function(input, output, session) {
     
     df$state2 <- df$state
     
-    facetPlotFunction(df,"hospitalizedpop")
+    facetPlotFunction(df,"hospitalizedpop", input$logscaletoggle)
     
     ggplotly()
     

@@ -14,6 +14,17 @@ ui <- fluidPage(
     sidebarPanel(
       
       # Input: checkbox for USA Total graph to show confirmations and or deaths ----
+      #checkboxGroupInput("logscaletoggle", 
+      #                   label = h5("Toggle Scales Log or Not"), 
+      #                   choices = c("Log", "cartision"),
+      #                   selected = c("positive", "death"), width = "100%"),
+      
+      radioButtons("logscaletoggle", 
+                   label = h5("Toggle Scales Log or Not"), 
+                   choices = c("Log", "Cartesian"), 
+                   selected = "Cartesian"),
+      
+      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
       checkboxGroupInput("metrics", 
                          label = h5("Selected Metrics"), 
                          choices = c("positive", "death"),

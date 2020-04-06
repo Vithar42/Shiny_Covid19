@@ -76,7 +76,7 @@ garykac_csv = function(fileName, baseURL) {
 
 # Reused Plot Functions ----
 # used for 1st plot on each tab
-DateStateCompPlot <- function(MyData, var, titlelab, Ylab) {
+DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "date", y = var, colour = "state")) +
     geom_point() +
@@ -88,7 +88,17 @@ DateStateCompPlot <- function(MyData, var, titlelab, Ylab) {
          x = "Date", 
          y = Ylab)
   
-  return(p)
+  if (logscaletoggle == "Log") {
+    
+    p <- p + scale_y_log10()
+    return(p)
+    
+  } else {
+    
+    return(p)
+    
+  }
+  
 }
 
 # used for n plots on Hospiliation tab
@@ -114,9 +124,9 @@ CountPlotFunction <- function(MyData, ii) {
 }
 
 # used for 2nd plots on all tabs
-slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate) {
+slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate, logscaletoggle) {
   
-  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
+  p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
     geom_point() +
     geom_line() +
     scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
@@ -125,25 +135,45 @@ slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate) {
          x = paste("Day from",slidedate,"infections"), 
          y = Ylab)
   
-  return(MyPlot)
+  
+  if (logscaletoggle == "Log") {
+    
+    p <- p + scale_y_log10()
+    return(p)
+    
+  } else {
+    
+    return(p)
+    
+  }
+  
 }
 
 # used for facet plots on all tabs
-facetPlotFunction <- function(MyData, var) {
+facetPlotFunction <- function(MyData, var, logscaletoggle) {
   
-  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var , color = "state")) +
+  p <- ggplot(MyData, aes_string(x = "dayNo", y = var , color = "state")) +
     geom_line(data = MyData[,2:length(names(MyData))], aes_string(x = "dayNo", y = var , group = "state2"), colour = "grey") +
     geom_line() +
     facet_wrap(~ state, scales = "free_y", ncol = 3) +
     theme(legend.position = "none") 
   
-  return(MyPlot)
+  if (logscaletoggle == "Log") {
+    
+    p <- p + scale_y_log10()
+    return(p)
+    
+  } else {
+    
+    return(p)
+    
+  }
 }
 
 # used for 4th plots on all tabs
-slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate) {
+slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate, logscaletoggle) {
 
-  MyPlot <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
+  p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
     geom_point() +
     geom_line() +
     scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
@@ -152,6 +182,15 @@ slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate
          x = paste("Day from",slidedate,"infections/100000"), 
          y = Ylab)
   
-  return(MyPlot)
+  if (logscaletoggle == "Log") {
+    
+    p <- p + scale_y_log10()
+    return(p)
+    
+  } else {
+    
+    return(p)
+    
+  }
   
 }
