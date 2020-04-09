@@ -90,11 +90,11 @@ DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
   
   if (logscaletoggle == "Log") {
     
-    p <- p + scale_y_log10()
+    p <- p + scale_y_log10(labels = comma)
     return(p)
     
   } else {
-    
+    p <- p + scale_y_continuous(labels = comma)
     return(p)
     
   }
@@ -138,11 +138,11 @@ slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate, l
   
   if (logscaletoggle == "Log") {
     
-    p <- p + scale_y_log10()
+    p <- p + scale_y_log10(labels = comma)
     return(p)
     
   } else {
-    
+    p <- p + scale_y_continuous(labels = comma)
     return(p)
     
   }
@@ -160,11 +160,11 @@ facetPlotFunction <- function(MyData, var, logscaletoggle) {
   
   if (logscaletoggle == "Log") {
     
-    p <- p + scale_y_log10()
+    p <- p + scale_y_log10(labels = comma)
     return(p)
     
   } else {
-    
+    p <- p + scale_y_continuous(labels = comma)
     return(p)
     
   }
@@ -179,16 +179,16 @@ slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate
     scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
     theme(legend.position = "none") +
     labs(title = titlelab,
-         x = paste("Day from",slidedate,"infections/100000"), 
+         x = paste("Day from",slidedate,"infections per 100,000"), 
          y = Ylab)
   
   if (logscaletoggle == "Log") {
     
-    p <- p + scale_y_log10()
+    p <- p + scale_y_log10(labels = comma)
     return(p)
     
   } else {
-    
+    p <- p + scale_y_continuous(labels = comma)
     return(p)
     
   }

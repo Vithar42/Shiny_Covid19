@@ -1,6 +1,3 @@
-# Data from:
-# Johns Hopkins University Center for System Science and Engineering (JHU CCSE)
-
 library(tidyverse)
 library(scales)
 library(plotly)
@@ -24,7 +21,7 @@ alldata <- garykac_csv("states-daily.csv", baseURL)
 
 # Main Shiny Function ----  
 function(input, output, session) {
-
+  # Prep Stuf ----
   # to use to simulate input when testing
    # input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
    #               metrics = c("positive", "death"),
@@ -42,52 +39,69 @@ function(input, output, session) {
              hospitalizedpop = hospitalized/pop)
     
   })
-  
-  
+
   # Plot 1 for USA Total Tab ----
   output$CumulatedPlot = renderPlotly({
 
     df <- alldata %>%
-      arrange(date) %>%
-      gather(key = "key", value = "value", positive, death) %>%
-      select(state, date, key, value) %>%
-      filter(value >= 0) %>%
-      filter(key %in% input$metrics) %>% 
-      group_by(date, key) %>% 
+      group_by(date) %>%
+      select(date, death, positive) %>%
+      pivot_longer(cols = c(death, positive)) %>% 
+      #filter(key %in% input$metrics) %>% 
+      group_by(date, name) %>% 
       summarise(value = sum(value))
     
-    p <- ggplot(df, aes(x = date, y = value, fill = key)) +
+    p <- ggplot(df, aes(x = date, y = value, fill = name)) +
       geom_bar(position="dodge", stat = "identity") +
       scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
       labs(title="Reported Cumulative US Infections",
            x ="Date", 
-           y = "Infections")
+           y = "Predicted Infections")
 
     
     if (input$logscaletoggle == "Log") {
       p <- p + scale_y_log10(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(key == "death")
-      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />key:", df2$key)
-      df3 <- df %>% filter(key == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />key:", df3$key)
+      df2 <- df %>% filter(name == "death")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       gp
       
     } else {
       p <- p + scale_y_continuous(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(key == "death")
-      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />key:", df2$key)
-      df3 <- df %>% filter(key == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />key:", df3$key)
+      df2 <- df %>% filter(name == "death")
+      gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "positive")
+      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       gp
     }
     
   })
   
   # Plot 2 for USA Total Tab ----
+  output$plot2message <- renderText({ 
+    df <- alldata %>%
+      group_by(date) %>%
+      select(date, death, positive) %>%
+      #pivot_longer(cols = c(death, positive)) %>% 
+      #filter(key %in% input$metrics) %>% 
+      group_by(date) %>% 
+      summarise(death = sum(death),
+                positive = sum(positive))
+    
+    deathrate <- round(max(df$death) / (max(df$positive) /  (1 - 0.80)) * 100,2)
+    
+    
+    paste("This graph is a calculated theoretical level of infection based on the reported daily death count.  
+     The graph stacks the thoretical missing tests with the confirmed positives.  The <Death Rate [%]> slider 
+     changes the assumption this graph is based on.  The starting point ", deathrate, "% is loosly based on the idea that 80% 
+     of casses are asymtomatic and so the slider default = (death count / (reported cases / (1 - 0.80)))", sep = "")
+  })
+  
   output$CumulatedPlotinfected = renderPlotly({
 
     df <- alldata %>%
@@ -100,7 +114,7 @@ function(input, output, session) {
                   names_from = name,
                   values_from = value) %>%
       mutate(infected = death / (input$deathrate/100)) %>%
-      mutate(missingtests = infected - positive) %>%
+      mutate(missingtests = if_else((infected - positive)<=0,0, infected - positive)) %>%
       pivot_longer(cols = c(positive, missingtests))
 
       
@@ -138,6 +152,14 @@ function(input, output, session) {
   })
   
   # 1st Plot for Infection by State Tab ----
+  output$infectStateplot1message <- renderText({ 
+    
+    "Infections by state based on the states selected on the side pannel.  
+    With very infections states like New York, selecting the Log scale option 
+    on the side pannel will make things easier to read."
+    
+  })
+  
   output$statePlot = renderPlotly({
     
     df <- statedata() %>%
@@ -150,6 +172,15 @@ function(input, output, session) {
   })
 
   # 2nd Plot for Infection by State Tab ----  
+  output$infectStateplot2message <- renderText({ 
+    
+    paste("Lines up the data so the day 0 has ",
+          input$dayo,
+          " cases.  The Slider <Number of Infections for Day 0> lets you change the starting point.", 
+          sep = "")
+    
+  })
+  
   output$linedupstatePlot = renderPlotly({
     
     df <- statedata() %>%
@@ -158,7 +189,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePlotFunction(df, "positive", "Infections by State", "Infections", input$dayo, input$logscaletoggle)
+    slidestartdatePlotFunction(df, "positive", "Day 0 Adjusted Infections by State", "Reported Infections", input$dayo, input$logscaletoggle)
     
     ggplotly()
     
@@ -182,6 +213,15 @@ function(input, output, session) {
   })
 
   # 4th Plot for Infection by State Tab -----  
+  output$infectStateplot4message <- renderText({ 
+    
+    paste("Lines up the data so the day 0 has ",
+          input$dayocap,
+          " cases per 100,000.  The Slider <Number of Infections/100000 for Day 0> lets you change the starting point.", 
+          sep = "")
+    
+  })
+  
   output$lineduppercapitastatePlot = renderPlotly({
     
     df <- statedata() %>%
@@ -190,7 +230,7 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
       
-    slidestartdatePopPlotFunction(df, "positivepop", "Infections by State", "Infections per 100000 people", input$dayocap, input$logscaletoggle)
+    slidestartdatePopPlotFunction(df, "positivepop", "Day 0 Adjusted Infections per 100,000 by State", "Infections per 100000 people", input$dayocap, input$logscaletoggle)
 
     ggplotly()
 
@@ -214,6 +254,14 @@ function(input, output, session) {
   })
   
   # 1st Plot for Deaths by State Tab ----   
+  output$deathStateplot1message <- renderText({ 
+    
+    "Infections by state based on the states selected on the side pannel.  
+    With very infections states like New York, selecting the Log scale option 
+    on the side pannel will make things easier to read."
+    
+  })
+  
   output$stateDeathPlot = renderPlotly({
     
     df <- statedata() %>%
@@ -289,7 +337,15 @@ function(input, output, session) {
 
   })
   
-  # 1st Plot for infection prediction ----     
+  # 1st Plot for infection prediction ----    
+  output$PredStateplot1message <- renderText({ 
+    
+    "Infections by state based on the states selected on the side pannel.  
+    With very infections states like New York, selecting the Log scale option 
+    on the side pannel will make things easier to read."
+    
+  })
+  
   output$stateDeathratePlot = renderPlotly({
     
     df <- statedata() %>%
@@ -370,6 +426,14 @@ function(input, output, session) {
   })
   
   # 1st plot for hospilizatoins tab ----
+  output$HospStateplot1message <- renderText({ 
+    
+    "Hospilizatoins by state based on the states selected on the side pannel.  
+    With very infections states like New York, selecting the Log scale option 
+    on the side pannel will make things easier to read."
+    
+  })
+  
   output$StateHospPlot = renderPlotly({
     
     df <- statedata()
@@ -444,5 +508,13 @@ function(input, output, session) {
     ggplotly()
     
   })
+  
+  
+  
+  # Plot and Data Play for S Curve Predictive Tab ----
+  # N(t) = N(0)exp(-c(exp(at)-1))      Gompertz function
+  # N(t) = N0 exp(ln(N1/N0)(1-exp(-bt)))
+
+  
   
 }
