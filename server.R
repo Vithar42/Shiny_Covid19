@@ -1,31 +1,34 @@
 library(tidyverse)
 library(scales)
 library(plotly)
-source("datawrangle.R")
+library(ggiraph)
+source("global.R")
 
 # Pull in Data using datawrangler ----  
 # Pull in State population data from the sensus ----  
-filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
-statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
-  select(state = NAME, pop = CENSUS2010POP )
-
+# filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
+# statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
+#   select(state = NAME, pop = CENSUS2010POP )
+#
 # # Pull in NewYorkTimes Data from https://github.com/cipriancraciun/covid19-datasets ----  
 # baseURL <- "https://raw.githubusercontent.com/cipriancraciun/covid19-datasets/master/exports/nytimes/v1/us-counties/"
 # fileName <- "values.tsv"
 # allData <- NYtimes_tsv(fileName, baseURL)
 
 # Pull in covidtracking.com Data from https://github.com/garykac/covid19/tree/master/data ----  
-baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
-fileName <- "states-daily.csv"
-alldata <- garykac_csv("states-daily.csv", baseURL)
-
+# baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
+# fileName <- "states-daily.csv"
+# alldata <- garykac_csv("states-daily.csv", baseURL)
+# 
 # Main Shiny Function ----  
 function(input, output, session) {
   # Prep Stuf ----
   # to use to simulate input when testing
-   # input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
-   #               metrics = c("positive", "death"),
-   #               deathrate = c(0.5))
+  #  input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+  #                deathrate = 0.5,
+  #                dayo = 100,
+  #                dayodeath = 5,
+  #                logscaletoggle = "Log")
 
   # Reactive data prep
   statedata = reactive({
@@ -165,7 +168,7 @@ function(input, output, session) {
     df <- statedata() %>%
       filter(state %in% input$states) 
     
-    DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections", input$logscaletoggle)
+    DateStateCompPlot(df, "positive", "Infections by State", "Cumulitave Cases", input$logscaletoggle)
 
     ggplotly()
     
@@ -185,11 +188,17 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positive > input$dayo, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePlotFunction(df, "positive", "Day 0 Adjusted Infections by State", "Reported Infections", input$dayo, input$logscaletoggle)
+    slidestartdatePlotFunction(df, 
+                               "positive", 
+                               "Day 0 Adjusted Infections by State", 
+                               "Confirmed Cases", 
+                               "Cumulitave Cases", 
+                               input$dayo, 
+                               input$logscaletoggle)
     
     ggplotly()
     
@@ -226,11 +235,18 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positivepop >= input$dayocap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+      #mutate(dayNo = if_else(positivepop >= input$dayocap, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
       
-    slidestartdatePopPlotFunction(df, "positivepop", "Day 0 Adjusted Infections per 100,000 by State", "Infections per 100000 people", input$dayocap, input$logscaletoggle)
+    slidestartdatePopPlotFunction(df, 
+                                  "positivepop", 
+                                  "Day 0 Adjusted Infections per 100,000 by State", 
+                                  "Confirmed Cases", 
+                                  "Cumulitave Cases Per 100000 people", 
+                                  input$dayo, 
+                                  input$logscaletoggle)
 
     ggplotly()
 
@@ -241,7 +257,7 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positivepop > input$dayocap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
@@ -262,12 +278,16 @@ function(input, output, session) {
     
   })
   
-  output$stateDeathPlot = renderPlotly({
-    
+  #output$stateDeathPlot = renderPlotly({
+  output$stateDeathPlot = renderggiraph({ 
     df <- statedata() %>%
       filter(state %in% input$states) 
     
-    DateStateCompPlot(df, "death", "Deaths by State", "Reported Deaths", input$logscaletoggle)
+    DateStateCompPlot(df, 
+                      "death", 
+                      "Deaths by State", 
+                      "Cumulitave Deaths", 
+                      input$logscaletoggle)
     
     ggplotly()
     
@@ -282,7 +302,13 @@ function(input, output, session) {
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
 
-    slidestartdatePlotFunction(df, "death", "Deaths by State", "Deaths", input$dayodeath, input$logscaletoggle)
+    slidestartdatePlotFunction(df, 
+                               "death", 
+                               "Deaths by State",
+                               "Deaths", 
+                               "Cumulitave Deaths", 
+                               input$dayodeath, 
+                               input$logscaletoggle)
     
     ggplotly()
     
@@ -310,11 +336,17 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(deathpop >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayodeathcap, input$logscaletoggle)
+    slidestartdatePopPlotFunction(df, 
+                                  "deathpop", 
+                                  "Deaths by State", 
+                                  "Deaths", 
+                                  "Cumulitave Deaths Per 100000 people", 
+                                  input$dayodeath, 
+                                  input$logscaletoggle)
     
     ggplotly()
     
@@ -325,7 +357,7 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(deathpop > input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
@@ -351,7 +383,11 @@ function(input, output, session) {
     df <- statedata() %>%
       mutate(infected = death / (input$deathrate/100))
     
-    DateStateCompPlot(df, "infected", "Predicted Infections by State", "Predicted Infections", input$logscaletoggle)
+    DateStateCompPlot(df, 
+                      "infected", 
+                      "Predicted Infections by State", 
+                      "Predicted Infections", 
+                      input$logscaletoggle)
     
     ggplotly()
     
@@ -362,12 +398,18 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(death > input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
       mutate(infected = death / (input$deathrate/100)) 
     
-    slidestartdatePlotFunction(df, "infected", "Infections by State", "Infections", input$dayodeathcap, input$logscaletoggle)
+    slidestartdatePlotFunction(df, 
+                               "infected", 
+                               "Infections by State", 
+                               "Confirmed Cases", 
+                               "Predicted Infections", 
+                               input$dayo, 
+                               input$logscaletoggle)
     
     ggplotly()
     
@@ -378,7 +420,7 @@ function(input, output, session) {
  
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(death > input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
       mutate(infected = death / (input$deathrate/100)) 
@@ -396,12 +438,18 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(deathpop >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
       mutate(infected = deathpop / (input$deathrate/100)) 
     
-    slidestartdatePopPlotFunction(df, "infected", "Infections by State", "Infections per 100000 people", input$dayodeathcap, input$logscaletoggle)
+    slidestartdatePopPlotFunction(df, 
+                                  "infected", 
+                                  "Infections by State", 
+                                  "Confirmed Cases", 
+                                  "Infections per 100000 people", 
+                                  input$dayo, 
+                                  input$logscaletoggle)
     
     ggplotly()
     
@@ -412,7 +460,7 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(deathpop >= input$dayodeathcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1) %>%
       mutate(infected = deathpop / (input$deathrate/100)) 
@@ -449,11 +497,17 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(hospitalized > input$dayohosp, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePlotFunction(df, "hospitalized", "Hospitalizations by State", "Reported Hospitalizations", input$dayohosp, input$logscaletoggle)
+    slidestartdatePlotFunction(df, 
+                               "hospitalized", 
+                               "Hospitalizations by State", 
+                               "Confirmed Cases", 
+                               "Reported Hospitalizations", 
+                               input$dayo, 
+                               input$logscaletoggle)
     
     ggplotly()
     
@@ -464,7 +518,7 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(hospitalized > input$dayohosp, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
@@ -481,11 +535,17 @@ function(input, output, session) {
     
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(hospitalizedpop >= input$dayohospcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
-    slidestartdatePopPlotFunction(df, "deathpop", "Deaths by State", "Deaths per 100000 people", input$dayohospcap, input$logscaletoggle)
+    slidestartdatePopPlotFunction(df, 
+                                  "deathpop", 
+                                  "Deaths by State", 
+                                  "Confirmed Cases", 
+                                  "Deaths per 100000 people", 
+                                  input$dayo, 
+                                  input$logscaletoggle)
     
     ggplotly()
     
@@ -497,7 +557,7 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(hospitalizedpop > input$dayohospcap, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo)) %>%
       filter(dayNo >= 1)
     
@@ -511,10 +571,26 @@ function(input, output, session) {
   
   
   
-  # Plot and Data Play for S Curve Predictive Tab ----
-  # N(t) = N(0)exp(-c(exp(at)-1))      Gompertz function
-  # N(t) = N0 exp(ln(N1/N0)(1-exp(-bt)))
 
   
+  # 1st Plot for  ----
+  
+  output$NewStatePlot = renderPlotly({
+    
+    df2 <- df %>% # statedata() %>%
+      select(state, date, positive, negative) %>%
+      pivot_longer()
+      
+    
+    # DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections", input$logscaletoggle)
+    ggplot(data, aes(x=date, y=percentage, fill=group)) + 
+      geom_area(alpha=0.6 , size=1, colour="black")
+    
+    
+    ggplotly()
+    
+  })
+  
+
   
 }

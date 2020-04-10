@@ -38,7 +38,7 @@ ui <- fluidPage(
       radioButtons("logscaletoggle", 
                    label = h5("Toggle Scales Log or Cartesian"), 
                    choices = c("Cartesian", "Log"), 
-                   selected = "Cartesian"),
+                   selected = "Log"),
       
       # Input: checkbox for USA Total graph to show confirmations and or deaths ----
       #checkboxGroupInput("metrics", 
@@ -54,6 +54,7 @@ ui <- fluidPage(
                          label = h5("Selected States"), 
                          choices = state.name,
                          selected = c("Minnesota", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+                         #selected = c("Louisiana","New York ","Michigan","Nebraska","Kentucky","Illinois ","Massachusetts","Colorado","Florida","Washington","Oregon ","North Carolina","California","Minnesota", "Wisconsin", "Ohio", "Iowa"),
                          inline = TRUE),
       
       # br() element to introduce extra vertical spacing ----
@@ -69,23 +70,6 @@ ui <- fluidPage(
                   label = h5("Number of Deaths for Day 0"),
                   min = 0, max = 500,
                   value = 5),
-      sliderInput("dayohosp", 
-                  label = h5("Number of Hospitilizatoins for Day 0"),
-                  min = 0, max = 500,
-                  value = 25),
-      # Plot 4 sliders
-      sliderInput("dayocap", 
-                  label = h5("Number of Infections/100000 for Day 0"),
-                  min = 0, max = 25, step = 0.5,
-                  value = 1),
-      sliderInput("dayodeathcap", 
-                  label = h5("Number of Death/100000s for Day 0"),
-                  min = 0, max = 5, step = 0.1,
-                  value = .5),
-      sliderInput("dayohospcap", 
-                  label = h5("Number of Hospitilizatoins/100000 for Day 0"),
-                  min = 0, max = 5, step = 0.1,
-                  value = .5),
       # Prediction Slider
       sliderInput("deathrate", 
                   label = h5("Death Rate [%]"),

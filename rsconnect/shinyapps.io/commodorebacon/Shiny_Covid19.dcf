@@ -1,0 +1,12 @@
+name: Shiny_Covid19
+title: Shiny_Covid19
+username:
+account: commodorebacon
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2092830
+bundleId: 2994817
+url: https://commodorebacon.shinyapps.io/Shiny_Covid19/
+when: 1586488775.57316
+asMultiple: FALSE
+asStatic: FALSE

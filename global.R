@@ -1,11 +1,6 @@
-
-# John Hopkens data broke on 3/23/20, this is someone who is taking their broken data stream and fixing it.
-# https://github.com/cipriancraciun/covid19-datasets
-# 
-# New Data Sourec https://github.com/cipriancraciun/covid19-datasets NY Times data that is not broken like the John Hopkins Data.
-#
-# New Data source https://github.com/garykac/covid19 contains positive and negative testing results and Hospitalizations
-# his data is a repakaging for usabaility the data from the https://covidtracking.com/ which is also possibly the NY Times source
+library(tidyverse)
+library(scales)
+library(plotly)
 
 #### Data loading functoins ----
 #### Function to check if it data is older than an hour ----
@@ -79,7 +74,7 @@ garykac_csv = function(fileName, baseURL) {
 DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "date", y = var, colour = "state")) +
-    geom_point() +
+    #geom_point() +
     geom_line() +
     scale_x_date(date_labels = "%b-%d", date_breaks  = "1 day") +
     theme(axis.text.x = element_text(angle = 90),
@@ -111,7 +106,7 @@ CountPlotFunction <- function(MyData, ii) {
   
   MyPlot <- ggplot(MyData %>% filter(state == input$states[[ii]]), aes(x = date, y = hospitalized, color = state)) +
     geom_line(data = MyData[,2:14], aes(x = date, y = hospitalized, group = state2), colour = "grey") +
-    geom_point() +
+    #geom_point() +
     geom_line() + 
     scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") + 
     theme(axis.text.x = element_text(angle = 90),
@@ -124,15 +119,15 @@ CountPlotFunction <- function(MyData, ii) {
 }
 
 # used for 2nd plots on all tabs
-slidestartdatePlotFunction <- function(MyData, var, titlelab, Ylab, slidedate, logscaletoggle) {
+slidestartdatePlotFunction <- function(MyData, var, titlelab, Xlab, Ylab, slidedate, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
-    geom_point() +
+    #geom_point() +
     geom_line() +
     scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
     theme(legend.position = "none") +
     labs(title = titlelab,
-         x = paste("Day from",slidedate,"infections"), 
+         x = paste("Day from", slidedate, Xlab), 
          y = Ylab)
   
   
@@ -171,15 +166,15 @@ facetPlotFunction <- function(MyData, var, logscaletoggle) {
 }
 
 # used for 4th plots on all tabs
-slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate, logscaletoggle) {
+slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Xlab, Ylab, slidedate, logscaletoggle) {
 
   p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
-    geom_point() +
+    #geom_point() +
     geom_line() +
     scale_x_continuous(breaks = seq(0,max(MyData$dayNo),1)) +
     theme(legend.position = "none") +
     labs(title = titlelab,
-         x = paste("Day from",slidedate,"infections per 100,000"), 
+         x = paste("Day Since", slidedate, Xlab), 
          y = Ylab)
   
   if (logscaletoggle == "Log") {
@@ -194,3 +189,22 @@ slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Ylab, slidedate
   }
   
 }
+
+
+
+
+# Pull in Data using datawrangler ----  
+# Pull in State population data from the sensus ----  
+filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
+statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
+  select(state = NAME, pop = CENSUS2010POP )
+
+# # Pull in NewYorkTimes Data from https://github.com/cipriancraciun/covid19-datasets ----  
+# baseURL <- "https://raw.githubusercontent.com/cipriancraciun/covid19-datasets/master/exports/nytimes/v1/us-counties/"
+# fileName <- "values.tsv"
+# allData <- NYtimes_tsv(fileName, baseURL)
+
+# Pull in covidtracking.com Data from https://github.com/garykac/covid19/tree/master/data ----  
+baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
+fileName <- "states-daily.csv"
+alldata <- garykac_csv("states-daily.csv", baseURL)
