@@ -142,6 +142,10 @@ ui <- fluidPage(
                            textOutput("HospStateplot4message"),
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
+                           ),
+                  tabPanel("Test", 
+                           plotlyOutput("NewStatePlot", width = "100%"),
+                           uiOutput("plots")
                            )
       )
     )

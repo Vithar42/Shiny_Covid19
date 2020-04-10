@@ -577,19 +577,94 @@ function(input, output, session) {
   
   output$NewStatePlot = renderPlotly({
     
-    df2 <- df %>% # statedata() %>%
+    df2 <- statedata() %>% # statedata() %>%
       select(state, date, positive, negative) %>%
-      pivot_longer()
+      mutate(dayNo = 1) %>%
+      mutate(dayNo = cumsum(dayNo)) %>%
+      pivot_longer(cols = c(positive, negative))
       
-    
     # DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections", input$logscaletoggle)
-    ggplot(data, aes(x=date, y=percentage, fill=group)) + 
-      geom_area(alpha=0.6 , size=1, colour="black")
+    p <- ggplot(df2, aes(x = dayNo, y = value, fill = name)) + 
+      geom_area(alpha = 0.6 , size = 1, colour = "black") +
+      facet_wrap(~ state, scales = "free_y", ncol = 3)
+    
+    if (input$logscaletoggle == "Log") {
+      p + scale_y_log10(labels = comma)
+    } else {
+      p + scale_y_continuous(labels = comma)
+    }
     
     
     ggplotly()
     
   })
+  
+  
+  #-----------------------------------------------------------------------------------------------------
+  #
+  #
+  
+  max_plots <- 50
+  
+  # max_plats <- reactiveVal(length(input$states))
+  
+  #
+  # Insert the right number of plot output objects into the web page
+  output$plots <- renderUI({
+    plot_output_list <- lapply(1:length(input$states), function(i) {
+      plotname <- paste("plot", i, sep="")
+      plotlyOutput(plotname, height = 280) #, width = 250)
+    })
+    
+    # Convert the list to a tagList - this is necessary for the list of items
+    # to display properly.
+    do.call(tagList, plot_output_list)
+  })
+  
+  # Call renderPlot for each one. Plots are only actually generated when they
+  # are visible on the web page.
+  
+  for (i in 1:max_plots) {
+    # Need local so that each item gets its own number. Without it, the value
+    # of i in the renderPlot() will be the same across all instances, because
+    # of when the expression is evaluated.
+    local({
+      my_i <- i
+      plotname <- paste("plot", my_i, sep="")
+      
+      output[[plotname]] <- renderPlotly({
+        
+        df2 <- statedata() %>% # statedata() %>%
+          select(state, date, positive, negative) %>%
+          mutate(dayNo = 1) %>%
+          mutate(dayNo = cumsum(dayNo)) %>%
+          pivot_longer(cols = c(positive, negative)) %>%
+          filter(state == input$states[my_i])
+        
+        p <- ggplot(df2, aes(x = dayNo, y = value, fill = name)) + 
+          geom_area(alpha = 0.6 , size = 1, colour = "black") +
+          theme(legend.position = "none") +
+          labs(title = input$states[my_i],
+               x = "Day Number", 
+               y = "Cases")
+        
+        if (input$logscaletoggle == "Log") {
+          p + scale_y_log10(labels = comma)
+        } else {
+          p + scale_y_continuous(labels = comma)
+        }
+        
+        ggplotly()
+        
+        # plot(1:my_i, 1:my_i,
+        #      xlim = c(1, max_plots),
+        #      ylim = c(1, max_plots),
+        #      main = paste("1:", my_i, ".  n is ", 3, sep = "")
+        # )
+      })
+    })
+  }
+  
   
 
   
