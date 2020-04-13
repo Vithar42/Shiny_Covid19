@@ -1,9 +1,7 @@
 library(tidyverse)
 library(scales)
 library(plotly)
-library(ggiraph)
 source("global.R")
-source("MNCOVID.R")
 
 # Pull in Data using datawrangler ----  
 # Pull in State population data from the sensus ----  
@@ -280,7 +278,7 @@ function(input, output, session) {
   })
   
   #output$stateDeathPlot = renderPlotly({
-  output$stateDeathPlot = renderggiraph({ 
+  output$stateDeathPlot = renderPlotly({ 
     df <- statedata() %>%
       filter(state %in% input$states) 
     
@@ -667,20 +665,25 @@ function(input, output, session) {
   }
   
   # Rmarkdown Conversion  ----
+
   
-  output$pp1 = renderPlotly({
-    p1
-    ggplotly()
+  output$ui_line <- renderUI({
+    ## using renderUI here because Knitr will not create a slider
+    tagList(
+      sliderInput("nr_points", "", min = 10, max = 100, value = 50),
+      renderPlot({
+        nr <- if (is.null(input$nr_points)) 2 else input$nr_points
+        plot(1:nr, rnorm(nr))
+      })
+    )
   })
   
-  output$pp2 = renderPlotly({
-    p2
-    ggplotly()
+  output$MNtext1 <- renderUI({
+    inclRmd("./ColumnLeft.Rmd")
   })
   
-  output$pp3 = renderPlotly({
-    p3
-    ggplotly()
+  output$MNtext2 <- renderUI({
+    inclRmd("./ColumnRight.Rmd")
   })
   
   

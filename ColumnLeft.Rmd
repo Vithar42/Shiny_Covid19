@@ -1,0 +1,163 @@
+
+
+```{r echo= FALSE, message = FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+source("global.R")
+library(tidyverse)
+library(gridExtra)
+
+## Convert to long format for p1 and p3 plots
+dataWide = alldata %>% 
+  filter(state == "Minnesota") %>%
+  mutate(Date = as.Date(date,format = "%m/%d/%y"),
+         Date = factor(str_remove(Date,"2020-")),
+         Currently.sick = positive - recovered,            
+         New.cases = as.integer(positiveIncrease),
+         Daily.tests = totalTestResultsIncrease,
+         Daily.tests = ifelse(Daily.tests == 66, 367, Daily.tests),   # Known bad datapoint in data set, forcing it to fit
+         PositivePercent = positiveIncrease / Daily.tests,
+         ICUPercent = inIcuCumulative / positive,
+         HospitalizedPercent = hospitalized / positive
+         ) %>%
+  select(Date = Date, 
+         Total.cases = positive,
+         Total.tested = totalTestResults,
+         Currently.hospitalized = hospitalizedCurrently,
+         ICU = inIcuCumulative,
+         Total.deaths = death,
+         Total.recovered = recovered,
+         Daily.tests = Daily.tests,            
+         New.cases = New.cases,              
+         Currently.sick = Currently.sick,        
+         New.deaths = deathIncrease,             
+         New.ICU = inIcuCurrently,                
+         New.hospitalized = hospitalizedIncrease,       
+         New.sick = positiveIncrease,               
+         PositivePercent = PositivePercent,
+         ICUPercent = ICUPercent,            
+         HospitalizedPercent = HospitalizedPercent)
+
+
+
+
+dataLongDailyTests <- dataWide %>% 
+  pivot_longer(c(-Date, -Daily.tests), names_to = "Variable", values_to = "Value")
+
+## get data for most recent date 
+dataWidePlain <- dataWide %>% 
+  filter(Date == last(Date))
+
+```
+
+## MN COVID-19 Summary 
+#### (`r format(Sys.time(), "%Y-%m-%d")`)
+* Testing
+  + Total number of completed tests: **`r (dataWidePlain$Total.tested)`** (up `r (dataWidePlain$Daily.tests)`)
+  + Total positive: **`r (dataWidePlain$Total.cases)`** (up `r (dataWidePlain$New.cases)`)
+* Case info   
+  + Patients who are currently sick: **`r (dataWidePlain$Currently.sick)`** (`r (ifelse(dataWidePlain$New.sick <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.sick)))`)
++ Total deaths: **`r (dataWidePlain$Total.deaths)`** (`r (ifelse(dataWidePlain$New.deaths <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.deaths)))`)
+  - Hospitalization   
+  - Hospitalized as of today: **`r (dataWidePlain$Currently.hospitalized)`** (up `r (dataWidePlain$New.hospitalized)`)
+  - Hospitalized in ICU as of today: **`r (dataWidePlain$ICU)`** (`r (ifelse(dataWidePlain$New.ICU <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.ICU)))`)
+
+```{r plot1, echo=FALSE, warning = FALSE, message=FALSE}
+
+## plots from COVID.R
+df <- dataLongDailyTests %>% 
+  drop_na(Daily.tests) %>% 
+  filter(Variable %in% c("New.deaths","New.cases"))
+
+loclevels <- droplevels(df$Date)
+
+loc = dataLongDailyTests %>%
+  drop_na(Daily.tests) %>%
+  distinct(Date) %>%
+  mutate(Loc = as.integer(factor(Date))) %>%
+  filter(Date %in% c("03-17","03-18","03-28")) %>%
+  pull(Loc)
+
+p1 <- ggplot(df, aes(Date, Value, fill = Variable, label = Value)) +
+  geom_col(position = "identity") +
+  geom_text(data = dataLongDailyTests %>% 
+              drop_na(Daily.tests) %>% 
+              filter(Variable %in% c("New.deaths")) %>% 
+              filter(Value > 0), aes(x = Date, y = Value), nudge_y = 1) +
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(size = 11, 
+                                   angle = 90, 
+                                   hjust = 1), 
+        text = element_text(size = 14), 
+        legend.text = element_text(size = 12)) +
+  labs(y = "Number of new cases", 
+       title = "MN COVID-19: daily new cases and deaths", 
+       fill = "") +
+  geom_vline(xintercept = loc, lty = 2) + 
+  annotate("label", 
+           x = c("03-16","03-20","03-29") ,
+           y = c(max(df$Value) * 0.50, max(df$Value) * 0.40, max(df$Value) * 0.50), 
+           label = c("Bar close","School close","StayHomeOrder")) +
+  scale_fill_brewer(name = "", palette = "Set2", labels = c("New case", "New death"))
+
+renderPlot({
+  p1
+  })
+
+```
+
+
+```{r plot2, echo=FALSE, warning = FALSE, message=FALSE}
+
+## plots from COVID.R
+df <- dataWide %>% 
+  drop_na(Daily.tests)
+
+loclevels <- droplevels(df$Date)
+
+loc = dataLongDailyTests %>%
+  drop_na(Daily.tests) %>%
+  distinct(Date) %>%
+  mutate(Loc = as.integer(factor(Date))) %>%
+  filter(Date %in% c("03-17","03-18","03-28")) %>%
+  pull(Loc)
+
+df <- df %>%
+  select(Date, PositivePercent, Daily.tests, Date, Daily.tests) 
+
+df$PositivePercent[which(!is.finite(df$PositivePercent))] <- 0
+
+p2 <- ggplot(df, aes(x = Date, y = PositivePercent * 100, size = Daily.tests, label = Date, fill = Daily.tests)) +
+  geom_line(aes(group = 1), size = 1, color = "gray20") +
+  geom_point(shape = 21, stroke = 1.5) +
+  labs(x = "Date", y = "Percentage (%)", 
+       title = "MN COVID-19: daily positive case percentage", 
+       size = "Number of daily tests", 
+       fill = "Number of daily tests") +
+  theme(legend.position = "bottom", 
+        axis.text.x = element_text(size = 11, 
+                                   angle = 90, 
+                                   hjust = 1), 
+        text = element_text(size = 14),
+        legend.text = element_text(size = 12)) +
+  geom_vline(xintercept = loc, lty = 2) + 
+  annotate("label", 
+           x = c("03-16","03-20","03-29"),
+           #y = c(12, 15, 15), 
+           y = c(max(df$PositivePercent)* 100 * 0.75, max(df$PositivePercent)* 100 * 0.65, max(df$PositivePercent)* 100 * 0.75),
+           label = c("Bar close","School close","StayHomeOrder")) +
+  guides(fill = guide_legend(), 
+         size = guide_legend())  +
+  scale_fill_gradient(low = "yellow", 
+                      high = "red", 
+                      na.value = NA) +
+  guides(fill = guide_legend(nrow = 2,byrow = TRUE))
+
+
+renderPlot({
+  p2
+  })
+
+```
+

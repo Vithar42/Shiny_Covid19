@@ -1,0 +1,134 @@
+
+
+```{r echo= FALSE, message = FALSE, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+source("global.R")
+library(tidyverse)
+library(gridExtra)
+
+## Convert to long format for p1 and p3 plots
+dataWide = alldata %>% 
+  filter(state == "Minnesota") %>%
+  mutate(Date = as.Date(date,format = "%m/%d/%y"),
+         Date = factor(str_remove(Date,"2020-")),
+         Currently.sick = positive - recovered,            
+         New.cases = as.integer(positiveIncrease),
+         Daily.tests = totalTestResultsIncrease,
+         Daily.tests = ifelse(Daily.tests == 66, 367, Daily.tests),   # Known bad datapoint in data set, forcing it to fit
+         PositivePercent = positiveIncrease / Daily.tests,
+         ICUPercent = inIcuCumulative / positive,
+         HospitalizedPercent = hospitalized / positive
+         ) %>%
+  select(Date = Date, 
+         Total.cases = positive,
+         Total.tested = totalTestResults,
+         Currently.hospitalized = hospitalizedCurrently,
+         ICU = inIcuCumulative,
+         Total.deaths = death,
+         Total.recovered = recovered,
+         Daily.tests = Daily.tests,            
+         New.cases = New.cases,              
+         Currently.sick = Currently.sick,        
+         New.deaths = deathIncrease,             
+         New.ICU = inIcuCurrently,                
+         New.hospitalized = hospitalizedIncrease,       
+         New.sick = positiveIncrease,               
+         PositivePercent = PositivePercent,
+         ICUPercent = ICUPercent,            
+         HospitalizedPercent = HospitalizedPercent)
+
+
+
+
+dataLongDailyTests <- dataWide %>% 
+  pivot_longer(c(-Date, -Daily.tests), names_to = "Variable", values_to = "Value")
+
+## get data for most recent date 
+dataWidePlain <- dataWide %>% 
+  filter(Date == last(Date))
+
+```
+
+```{r plot3, echo=FALSE, warning = FALSE, message=FALSE}
+## plots from COVID.R
+df <- dataLongDailyTests %>% 
+  drop_na(Daily.tests) %>% 
+  filter(Variable %in% c("ICU", "Currently.hospitalized", "ICUPercent", "Total.deaths", "HospitalizedPercent"), 
+         as.numeric(Date) > 18) %>% 
+  mutate(Value = ifelse(str_detect(Variable, "Percent"), Value*100, Value), 
+         Variable = factor(Variable, levels = c("Currently.hospitalized", "ICU", "Total.deaths", "HospitalizedPercent","ICUPercent")))
+  
+loclevels <- droplevels(df$Date)
+
+loc = df %>%
+  drop_na(Daily.tests) %>%
+  distinct(Date) %>%
+  mutate(Loc = as.integer(factor(Date))) %>%
+  filter(Date %in% c("03-28")) %>%
+  pull(Loc)
+
+p3 = ggplot(df, aes(Date, Value, color = Variable)) +
+  geom_line(aes(group = Variable, lty = Variable), size = 1.2) +
+  geom_point(aes(size = Daily.tests),shape = 21, fill = "white", stroke = 1.2) +
+  theme(axis.text.x = element_text(size = 12, angle = 50, hjust = 1)) +
+  labs(y = "Number of cases", 
+       size = "Number of daily tests") +
+  ggtitle(str_wrap("Hospitalized, ICU, Death, Hospitalized percentage and ICU percentage",38)) +
+  geom_vline(xintercept = loc, lty = 2)  + 
+  annotate("label", 
+           x = c("03-28"), 
+           y = 100, 
+           label = c("StayHomeOrder")) +
+  scale_color_brewer(palette = "Dark2", 
+                     name = "", 
+                     labels = str_wrap(c("Current hospitalized", "Current ICU","Total deaths", "Hospitalized percentage (of current active cases)","ICU percentage (of current hospitalized cases)"), 30)) +
+  scale_y_continuous(sec.axis = sec_axis(~ ./max(dataLongDailyTests %>% 
+                                                   drop_na(Daily.tests) %>% 
+                                                   filter(Variable %in% c("Date", "Currently.hospitalized"), as.numeric(Date)>18) %>% 
+                                                   pull(Value))*100,
+                                         name = "Percentage (%)")) +
+  scale_linetype_manual(values =  c(1,1,1,3,3), 
+                        name = "", 
+                        labels = str_wrap(c("Current hospitalized", "Current ICU","Total deaths", "Hospitalized percentage (of current active cases)","ICU percentage (of current hospitalized cases)"),30)) +
+  theme(axis.text.y.right =  element_text(colour = "black"), 
+        axis.title.y.right = element_text(colour = "black"),
+        legend.position = "bottom", 
+        legend.margin = margin(), 
+        legend.box = "vertical",
+        text = element_text(size = 14), 
+        legend.text = element_text(size = 12)) +
+  guides(color = guide_legend(nrow = 2,byrow = TRUE))
+
+renderPlot({
+  p3 
+  })
+```
+
+```{r table1, echo=FALSE, warning= FALSE}
+ dataWide %>%
+   filter(Date %in% tail(Date, 10)) %>%
+   select(Date, starts_with("Total")) %>%
+   rename_at(vars(starts_with("Total")), ~str_to_title(str_remove_all(.,"Total."))) %>%
+   kable(digits = 3,booktabs = T, caption = "Total numbers for last 10 days",align = "c") %>%
+   kable_styling(latex_options = c("scale_down", "hold_position"), font_size = 8) %>% 
+   row_spec(10, color = "white", background = "#FF33CC")
+```
+
+```{r table2, echo=FALSE, warning= FALSE}
+ dataWide %>%
+   filter(Date %in% tail(Date, 10)) %>%
+   #mutate(HospitalizedPercent = HospitalizedPercent*100, ICUPercent = ICUPercent*100) %>%
+   select(-starts_with("Total"), -starts_with("New"), -ends_with("Percent"), Daily.tests) %>% 
+   rename(`Hospitalized case` = Currently.hospitalized, `Active case` = Currently.sick, `ICU case` = ICU, `Daily tests` = Daily.tests) %>%
+   select(Date, ends_with("case"), everything()) %>% 
+   kable(digits = 2, booktabs = T, caption = "Current numbers for last 10 days", align = "c") %>%
+   kable_styling(latex_options = c("scale_down","hold_position"), font_size = 8) %>% 
+   row_spec(10, color = "white", background = "#FF33CC")
+```
+
+Data & source code:
+
+* Data: *https://github.com/garykac/covid19/tree/master/data*
+* Code: *https://github.com/coolbaby0208/MN-COVID19*    

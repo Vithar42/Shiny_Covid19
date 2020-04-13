@@ -130,8 +130,8 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
                            plotlyOutput("facetPlot6", width = "100%")
                            ),
-                  tabPanel("Hospitilizatoins", 
-                           h2("Hospitilizatoins by State"),
+                  tabPanel("Hospitalizations", 
+                           h2("Hospitalizations by State"),
                            textOutput("HospStateplot1message"),
                            plotlyOutput("StateHospPlot", width = "100%"),
                            h2("Adjusted Day 0 Plot"),
@@ -143,18 +143,17 @@ ui <- fluidPage(
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
                            ),
-                  tabPanel("Test", 
+                  tabPanel("Testing wip", 
                            plotlyOutput("NewStatePlot", width = "100%"),
                            uiOutput("plots")
                            ),
                   tabPanel("Minnesota", 
                            fluidRow(
-                             column(4,
-                                    plotlyOutput("pp1", width = "100%"),
-                                    plotlyOutput("pp2", width = "100%")
+                             column(6,
+                                    uiOutput("MNtext1")
                                     ),
-                             column(4,
-                                    plotlyOutput("pp3", width = "100%")
+                             column(6,
+                                    uiOutput("MNtext2")
                                     )
                            )
                   )
