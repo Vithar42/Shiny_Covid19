@@ -3,6 +3,7 @@ library(scales)
 library(plotly)
 library(ggiraph)
 source("global.R")
+source("MNCOVID.R")
 
 # Pull in Data using datawrangler ----  
 # Pull in State population data from the sensus ----  
@@ -665,7 +666,22 @@ function(input, output, session) {
     })
   }
   
+  # Rmarkdown Conversion  ----
   
-
+  output$pp1 = renderPlotly({
+    p1
+    ggplotly()
+  })
+  
+  output$pp2 = renderPlotly({
+    p2
+    ggplotly()
+  })
+  
+  output$pp3 = renderPlotly({
+    p3
+    ggplotly()
+  })
+  
   
 }

@@ -146,7 +146,18 @@ ui <- fluidPage(
                   tabPanel("Test", 
                            plotlyOutput("NewStatePlot", width = "100%"),
                            uiOutput("plots")
+                           ),
+                  tabPanel("Minnesota", 
+                           fluidRow(
+                             column(4,
+                                    plotlyOutput("pp1", width = "100%"),
+                                    plotlyOutput("pp2", width = "100%")
+                                    ),
+                             column(4,
+                                    plotlyOutput("pp3", width = "100%")
+                                    )
                            )
+                  )
       )
     )
   )
