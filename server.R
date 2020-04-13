@@ -24,7 +24,7 @@ function(input, output, session) {
   # Prep Stuf ----
   # to use to simulate input when testing
   #  input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
-  #                deathrate = 0.5,
+  #                deathrate = 0.8,
   #                dayo = 100,
   #                dayodeath = 5,
   #                logscaletoggle = "Log")
@@ -86,6 +86,7 @@ function(input, output, session) {
   
   # Plot 2 for USA Total Tab ----
   output$plot2message <- renderText({ 
+    
     df <- alldata %>%
       group_by(date) %>%
       select(date, death, positive) %>%
@@ -99,7 +100,7 @@ function(input, output, session) {
     
     
     paste("This graph is a calculated theoretical level of infection based on the reported daily death count.  
-     The graph stacks the thoretical missing tests with the confirmed positives.  The <Death Rate [%]> slider 
+     The graph stacks the thoretical missing tests with the confirmed positives, the line on the graph is the cumulative total tests taken.  The <Death Rate [%]> slider 
      changes the assumption this graph is based on.  The starting point ", deathrate, "% is loosly based on the idea that 80% 
      of casses are asymtomatic and so the slider default = (death count / (reported cases / (1 - 0.80)))", sep = "")
   })
@@ -108,44 +109,52 @@ function(input, output, session) {
 
     df <- alldata %>%
       group_by(date) %>%
-      select(date, death, positive) %>%
-      pivot_longer(cols = c(death, positive)) %>% 
+      select(date, death, positive, totalTestResults) %>%
+      pivot_longer(cols = c(death, positive, totalTestResults)) %>% 
       group_by(date, name) %>%
       summarise(value = sum(value)) %>%
       pivot_wider(id_cols = date,
                   names_from = name,
                   values_from = value) %>%
       mutate(infected = death / (input$deathrate/100)) %>%
-      mutate(missingtests = if_else((infected - positive) <= 0,0, infected - positive)) %>%
+      mutate(missingtests = if_else((infected - positive) <= 0,0, infected - positive)) 
+    
+    df1 <- df %>%
       pivot_longer(cols = c(positive, missingtests))
 
       
-    p <- ggplot(df, aes(x = date, y = value, fill = name),) +
-      geom_bar(stat = "identity") +
+    p <- ggplot(df1) +
+      geom_bar(aes(x = date, y = value, fill = name), stat = "identity") +
+      geom_line(data = df, aes(x = date,y = totalTestResults), color = "blue") +
       scale_x_date(date_labels = "%b-%d",date_breaks  = "1 day")  +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
       labs(title = "Predicted Cumulative US Infections from death rate",
            x = "Date", 
            y = "Infections")
-    
+
+
     
     if (input$logscaletoggle == "Log") {
       p <- p + scale_y_log10(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(name == "missingtests")
+      df2 <- df1 %>% filter(name == "missingtests")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
-      df3 <- df %>% filter(name == "positive")
+      df3 <- df1 %>% filter(name == "positive")
       gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      df4 <- df %>% pivot_longer(cols = c(totalTestResults))
+      gp$x$data[[3]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
       gp
       
     } else {
       p <- p + scale_y_continuous(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(name == "missingtests")
+      df2 <- df1 %>% filter(name == "missingtests")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
-      df3 <- df %>% filter(name == "positive")
+      df3 <- df1 %>% filter(name == "positive")
       gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      df4 <- df %>% pivot_longer(cols = c(totalTestResults))
+      gp$x$data[[3]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
       gp
     }
       
@@ -654,9 +663,7 @@ function(input, output, session) {
   })
   
   
-  #-----------------------------------------------------------------------------------------------------
-  #
-  #
+  # 2nd to n Plots for Testing Tab ----
   
   max_plots <- 50
   
@@ -719,7 +726,7 @@ function(input, output, session) {
     })
   }
   
-  # Rmarkdown Conversion  ----
+  # Minnesota Tab, importing Rmarkdown files  ----
 
   
   output$ui_line <- renderUI({
