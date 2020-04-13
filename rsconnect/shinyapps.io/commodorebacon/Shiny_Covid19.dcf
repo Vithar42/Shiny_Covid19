@@ -5,8 +5,8 @@ account: commodorebacon
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2092830
-bundleId: 3008260
+bundleId: 3008288
 url: https://commodorebacon.shinyapps.io/Shiny_Covid19/
-when: 1586806150.23093
+when: 1586806610.90925
 asMultiple: FALSE
 asStatic: FALSE

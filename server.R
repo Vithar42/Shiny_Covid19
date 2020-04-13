@@ -54,12 +54,12 @@ function(input, output, session) {
       summarise(value = sum(value))
     
     p <- ggplot(df, aes(x = date, y = value, fill = name)) +
-      geom_bar(position="dodge", stat = "identity") +
-      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day") +
+      geom_bar(position = "dodge", stat = "identity") +
+      scale_x_date(date_labels="%b-%d",date_breaks  = "1 day") +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
-      labs(title="Reported Cumulative US Infections",
-           x ="Date", 
+      labs(title = "Reported Cumulative US Infections",
+           x = "Date", 
            y = "Predicted Infections")
 
     
@@ -116,17 +116,17 @@ function(input, output, session) {
                   names_from = name,
                   values_from = value) %>%
       mutate(infected = death / (input$deathrate/100)) %>%
-      mutate(missingtests = if_else((infected - positive)<=0,0, infected - positive)) %>%
+      mutate(missingtests = if_else((infected - positive) <= 0,0, infected - positive)) %>%
       pivot_longer(cols = c(positive, missingtests))
 
       
     p <- ggplot(df, aes(x = date, y = value, fill = name),) +
       geom_bar(stat = "identity") +
-      scale_x_date(date_labels="%b-%d",date_breaks  ="1 day")  +
+      scale_x_date(date_labels = "%b-%d",date_breaks  = "1 day")  +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
-      labs(title="Predicted Cumulative US Infections from death rate",
-           x ="Date", 
+      labs(title = "Predicted Cumulative US Infections from death rate",
+           x = "Date", 
            y = "Infections")
     
     
@@ -188,8 +188,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     slidestartdatePlotFunction(df, 
                                "positive", 
@@ -209,8 +209,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive > input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -223,10 +223,7 @@ function(input, output, session) {
   # 4th Plot for Infection by State Tab -----  
   output$infectStateplot4message <- renderText({ 
     
-    paste("Lines up the data so the day 0 has ",
-          input$dayocap,
-          " cases per 100,000.  The Slider <Number of Infections/100000 for Day 0> lets you change the starting point.", 
-          sep = "")
+    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Infections for Day 0> slider to influacne this chart."
     
   })
   
@@ -236,8 +233,8 @@ function(input, output, session) {
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       #mutate(dayNo = if_else(positivepop >= input$dayocap, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
       
     slidestartdatePopPlotFunction(df, 
                                   "positivepop", 
@@ -257,8 +254,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -271,9 +268,7 @@ function(input, output, session) {
   # 1st Plot for Deaths by State Tab ----   
   output$deathStateplot1message <- renderText({ 
     
-    "Infections by state based on the states selected on the side pannel.  
-    With very infections states like New York, selecting the Log scale option 
-    on the side pannel will make things easier to read."
+    "Deaths by state based on the states selected on the side pannel."
     
   })
   
@@ -293,13 +288,22 @@ function(input, output, session) {
   })
 
   # 2nd Plot for Deaths by State Tab ----  
+  output$deathStateplot2message <- renderText({ 
+    
+    paste("Lines up the data so the day 0 has ",
+          input$dayodeath,
+          " deaths.  The Slider <Number of Deaths for Day 0> lets you change the starting point.", 
+          sep = "")
+    
+  })
+  
   output$linedupstatedeathPlot = renderPlotly({
 
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
 
     slidestartdatePlotFunction(df, 
                                "death", 
@@ -318,9 +322,9 @@ function(input, output, session) {
 
     df <- statedata() %>%
       group_by(state) %>%
-      mutate(dayNo = if_else(positive > input$dayodeath, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -331,13 +335,19 @@ function(input, output, session) {
   })
   
   # 4th Plot for Deaths by State Tab ----    
+  output$deathStateplot4message <- renderText({ 
+    
+    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Deaths for Day 0> slider to influacne this chart."
+    
+  })
+  
   output$lineduppercapitadeahtstatePlot = renderPlotly({
     
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     slidestartdatePopPlotFunction(df, 
                                   "deathpop", 
@@ -357,8 +367,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(death > input$dayodeath, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -371,11 +381,23 @@ function(input, output, session) {
   # 1st Plot for infection prediction ----    
   output$PredStateplot1message <- renderText({ 
     
-    "Infections by state based on the states selected on the side pannel.  
-    With very infections states like New York, selecting the Log scale option 
-    on the side pannel will make things easier to read."
+    df <- alldata %>%
+      group_by(date) %>%
+      select(date, death, positive) %>%
+      #pivot_longer(cols = c(death, positive)) %>% 
+      #filter(key %in% input$metrics) %>% 
+      group_by(date) %>% 
+      summarise(death = sum(death),
+                positive = sum(positive))
+    
+    deathrate <- round(max(df$death) / (max(df$positive) /  (1 - 0.80)) * 100,2)
+    
+    
+    paste("Deaths by state based on the states selected on the side pannel.  The starting point ", deathrate, "% is loosly based on the idea that 80% 
+     of casses are asymtomatic and so the slider default = (death count / (reported cases / (1 - 0.80)))", sep = "")
     
   })
+
   
   output$stateDeathratePlot = renderPlotly({
     
@@ -393,13 +415,22 @@ function(input, output, session) {
   })
   
   # 2nd Plot for infection prediction ----  
+  output$PredStateplot2message <- renderText({ 
+    
+    paste("Lines up the data so the day 0 has ",
+          input$dayo,
+          " deaths.  The Slider <Number of Infections for Day 0> lets you change the starting point.", 
+          sep = "")
+    
+  })
+  
   output$linedupstatedeathratePlot = renderPlotly({
     
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0) %>%
       mutate(infected = death / (input$deathrate/100)) 
     
     slidestartdatePlotFunction(df, 
@@ -420,8 +451,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0) %>%
       mutate(infected = death / (input$deathrate/100)) 
     
     df$state2 <- df$state
@@ -432,14 +463,20 @@ function(input, output, session) {
 
   })
   
-  # 4th Plot for infection prediction ----    
+  # 4th Plot for infection prediction ----
+  output$PredStateplot4message <- renderText({ 
+    
+    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Infections for Day 0> slider to influacne this chart."
+    
+  })
+  
   output$lineduppercapitastateratePlot = renderPlotly({
 
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0) %>%
       mutate(infected = deathpop / (input$deathrate/100)) 
     
     slidestartdatePopPlotFunction(df, 
@@ -460,8 +497,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0) %>%
       mutate(infected = deathpop / (input$deathrate/100)) 
     
     df$state2 <- df$state
@@ -474,12 +511,10 @@ function(input, output, session) {
   
   # 1st plot for hospilizatoins tab ----
   output$HospStateplot1message <- renderText({ 
-    
-    "Hospilizatoins by state based on the states selected on the side pannel.  
-    With very infections states like New York, selecting the Log scale option 
-    on the side pannel will make things easier to read."
-    
-  })
+      
+      "Hospitalizations by state based on the states selected on the side pannel."
+      
+    })
   
   output$StateHospPlot = renderPlotly({
     
@@ -492,13 +527,22 @@ function(input, output, session) {
   })
   
   # 2nd Plot for hospilizatoins tab ----  
+  output$HospStateplot2message <- renderText({ 
+    
+    paste("Lines up the data so the day 0 has ",
+          input$dayo,
+          " deaths.  The Slider <Number of Infections for Day 0> lets you change the starting point.", 
+          sep = "")
+    
+  })
+  
   output$SlideStateHospPlot = renderPlotly({
     
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     slidestartdatePlotFunction(df, 
                                "hospitalized", 
@@ -518,8 +562,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -530,13 +574,19 @@ function(input, output, session) {
   })
   
   # 4th Plot for hospilizatoins tab ---- 
+  output$HospStateplot4message <- renderText({ 
+    
+    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Infections for Day 0> slider to influacne this chart."
+    
+  })
+  
   output$SlideStateHospPopPlot = renderPlotly({
     
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     slidestartdatePopPlotFunction(df, 
                                   "deathpop", 
@@ -557,8 +607,8 @@ function(input, output, session) {
     df <- statedata() %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
-      filter(dayNo >= 1)
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0)
     
     df$state2 <- df$state
     
@@ -572,14 +622,19 @@ function(input, output, session) {
   
 
   
-  # 1st Plot for  ----
+  # 1st Plot for  Testing Tab----
+  output$TestStateplot1message <- renderText({ 
+    
+    "Current work in progress (wip) will eventually compare states on their Positive vs Negative testing."
+    
+  })
   
   output$NewStatePlot = renderPlotly({
     
     df2 <- statedata() %>% # statedata() %>%
       select(state, date, positive, negative) %>%
       mutate(dayNo = 1) %>%
-      mutate(dayNo = cumsum(dayNo)) %>%
+      mutate(dayNo = cumsum(dayNo)-1) %>%
       pivot_longer(cols = c(positive, negative))
       
     # DateStateCompPlot(df, "positive", "Infections by State", "Reported Infections", input$logscaletoggle)
@@ -636,7 +691,7 @@ function(input, output, session) {
         df2 <- statedata() %>% # statedata() %>%
           select(state, date, positive, negative) %>%
           mutate(dayNo = 1) %>%
-          mutate(dayNo = cumsum(dayNo)) %>%
+          mutate(dayNo = cumsum(dayNo)-1) %>%
           pivot_longer(cols = c(positive, negative)) %>%
           filter(state == input$states[my_i])
         

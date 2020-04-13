@@ -144,6 +144,7 @@ ui <- fluidPage(
                            plotlyOutput("facetPlot8", width = "100%")
                            ),
                   tabPanel("Testing wip", 
+                           textOutput("TestStateplot1message"),
                            plotlyOutput("NewStatePlot", width = "100%"),
                            uiOutput("plots")
                            ),
