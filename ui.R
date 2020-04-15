@@ -28,23 +28,12 @@ ui <- fluidPage(
     
     # Sidebar panel for inputs ----
     sidebarPanel(
-      
-      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
-      #checkboxGroupInput("logscaletoggle", 
-      #                   label = h5("Toggle Scales Log or Not"), 
-      #                   choices = c("Log", "cartision"),
-      #                   selected = c("positive", "death"), width = "100%"),
-      
+      actionLink("newTab", "Append tab"),
+      # selection between log and cartesian scale
       radioButtons("logscaletoggle", 
                    label = h5("Toggle Scales Log or Cartesian"), 
                    choices = c("Cartesian", "Log"), 
                    selected = "Log"),
-      
-      # Input: checkbox for USA Total graph to show confirmations and or deaths ----
-      #checkboxGroupInput("metrics", 
-      #                   label = h5("Selected Metrics"), 
-      #                   choices = c("positive", "death"),
-      #                   selected = c("positive", "death"), width = "100%"),
       
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -83,6 +72,7 @@ ui <- fluidPage(
       
       # Output: Tabset w/ plot, summary, and table ----
       tabsetPanel(type = "tabs",
+                  # Tab USA Total ----
                   tabPanel("USA Total", 
                            h2("USA Totals"),
                            #br(),
@@ -91,6 +81,7 @@ ui <- fluidPage(
                            textOutput("plot2message"),
                            plotlyOutput("CumulatedPlotinfected", width = "100%")
                            ),
+                  # Tab Infections by State ----
                   tabPanel("Infections by State", 
                            h2("Infections by State"),
                            textOutput("infectStateplot1message"),
@@ -104,6 +95,7 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitastatePlot", width = "100%"),
                            plotlyOutput("facetPlot2", width = "100%")
                           ),
+                  # Tab Death by State ----
                   tabPanel("Death by State", 
                            h2("Death by State"),
                            textOutput("deathStateplot1message"),
@@ -117,6 +109,7 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitadeahtstatePlot", width = "100%"),
                            plotlyOutput("facetPlot4", width = "100%")
                            ),
+                  # Tab Predicted Infection ----
                   tabPanel("Predicted Infection", 
                            h2("Predicted Infections by State"),
                            textOutput("PredStateplot1message"),
@@ -130,6 +123,7 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
                            plotlyOutput("facetPlot6", width = "100%")
                            ),
+                  # Tab Hospitalizations ----
                   tabPanel("Hospitalizations", 
                            h2("Hospitalizations by State"),
                            textOutput("HospStateplot1message"),
@@ -143,11 +137,13 @@ ui <- fluidPage(
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
                            ),
+                  # Tab Testing wip ----
                   tabPanel("Testing wip", 
                            textOutput("TestStateplot1message"),
                            plotlyOutput("NewStatePlot", width = "100%"),
                            uiOutput("plots")
                            ),
+                  # Tab Minnesota ----
                   tabPanel("Minnesota", 
                            fluidRow(
                              column(6,
@@ -156,8 +152,16 @@ ui <- fluidPage(
                              column(6,
                                     uiOutput("MNtext2")
                                     )
+                             )
+                           ),
+                  # Tab State OutPuts ----
+                  
+                  tabPanel("State OutPuts",
+                           tabsetPanel(id="myTabs", type="pills")
+                          # tabsetPanel("StateTabset",
+                          #   uiOutput("StateTabs")
+                          #   )
                            )
-                  )
       )
     )
   )

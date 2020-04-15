@@ -4,13 +4,12 @@
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 library(kableExtra)
-source("global.R")
 library(tidyverse)
 library(gridExtra)
 
 ## Convert to long format for p1 and p3 plots
 dataWide = alldata %>% 
-  filter(state == "Minnesota") %>%
+  filter(state == testi) %>%
   mutate(Date = as.Date(date,format = "%m/%d/%y"),
          Date = factor(str_remove(Date,"2020-")),
          Currently.sick = positive - recovered,            

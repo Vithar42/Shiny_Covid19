@@ -1,7 +1,7 @@
 library(tidyverse)
 library(scales)
 library(plotly)
-source("global.R")
+#source("global.R")
 
 # Pull in Data using datawrangler ----  
 # Pull in State population data from the sensus ----  
@@ -695,7 +695,7 @@ function(input, output, session) {
       
       output[[plotname]] <- renderPlotly({
         
-        df2 <- statedata() %>% # statedata() %>%
+        df2 <- statedata() %>%
           select(state, date, positive, negative) %>%
           mutate(dayNo = 1) %>%
           mutate(dayNo = cumsum(dayNo)-1) %>%
@@ -717,18 +717,11 @@ function(input, output, session) {
         
         ggplotly()
         
-        # plot(1:my_i, 1:my_i,
-        #      xlim = c(1, max_plots),
-        #      ylim = c(1, max_plots),
-        #      main = paste("1:", my_i, ".  n is ", 3, sep = "")
-        # )
       })
     })
   }
   
   # Minnesota Tab, importing Rmarkdown files  ----
-
-  
   output$ui_line <- renderUI({
     ## using renderUI here because Knitr will not create a slider
     tagList(
@@ -739,14 +732,48 @@ function(input, output, session) {
       })
     )
   })
-  
+
   output$MNtext1 <- renderUI({
+    testi <- "Minnesota"
     inclRmd("./ColumnLeft.Rmd")
   })
   
   output$MNtext2 <- renderUI({
+    testi <- "Minnesota"
     inclRmd("./ColumnRight.Rmd")
   })
   
+  
+  
+  # States Output Tab ----
+
+
+  observe({
+    
+    for (i in input$states){
+      local({
+      testi <- i
+      appendTab("myTabs",
+                tabPanel(i, tags$p(
+                  
+                  #paste("I'm tab", i)
+                  fluidRow(
+                    column(6,
+                           renderUI({
+                             inclRmd("./ColumnLeft.Rmd")
+                             })
+                           ),
+                    column(6,
+                           renderUI({
+                             inclRmd("./ColumnRight.Rmd")
+                             })
+                           )
+                    )
+                  )), 
+                select=TRUE)
+      })
+    }
+    
+  })
   
 }

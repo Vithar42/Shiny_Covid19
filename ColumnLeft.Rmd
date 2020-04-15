@@ -4,13 +4,12 @@
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 library(kableExtra)
-source("global.R")
 library(tidyverse)
 library(gridExtra)
 
 ## Convert to long format for p1 and p3 plots
 dataWide = alldata %>% 
-  filter(state == "Minnesota") %>%
+  filter(state == testi) %>%
   mutate(Date = as.Date(date,format = "%m/%d/%y"),
          Date = factor(str_remove(Date,"2020-")),
          Currently.sick = positive - recovered,            
@@ -52,8 +51,20 @@ dataWidePlain <- dataWide %>%
 
 ```
 
-## MN COVID-19 Summary 
+## `r renderText(testi)` COVID-19 Summary 
 #### (`r format(Sys.time(), "%Y-%m-%d")`)
+
+```{r test, echo=FALSE, warning = FALSE, message=FALSE}
+
+renderText({
+  paste("This worked?",
+  input$states[1],
+  "did it really?",
+  testi)
+})
+
+```
+
 * Testing
   + Total number of completed tests: **`r prettyNum(dataWidePlain$Total.tested, big.mark=",")`** (up `r (dataWidePlain$Daily.tests)`)
   + Total positive: **`r (dataWidePlain$Total.cases)`** (up `r (dataWidePlain$New.cases)`)
