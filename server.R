@@ -49,13 +49,15 @@ function(input, output, session) {
       group_by(date) %>%
       select(date, death, positive) %>%
       pivot_longer(cols = c(death, positive)) %>% 
-      #filter(key %in% input$metrics) %>% 
       group_by(date, name) %>% 
       summarise(value = sum(value))
     
-    p <- ggplot(df, aes(x = date, y = value, fill = name)) +
-      geom_bar(position = "dodge", stat = "identity") +
-      scale_x_date(date_labels="%b-%d",date_breaks  = "1 day") +
+    p <- ggplot() +
+      geom_area(data = df %>% filter(name == "positive"), aes(x = date, y = value, fill = name), position = "identity") +
+      geom_line(data = df %>% filter(name == "positive"), aes(x = date, y = value), color = "black") +
+      geom_area(data = df %>% filter(name == "death"), aes(x = date, y = value, fill = name), position = "identity") +
+      geom_line(data = df %>% filter(name == "death"), aes(x = date, y = value), color = "black") +
+      scale_x_date(date_labels = "%b-%d",date_breaks  = "1 day") +
       theme(axis.text.x = element_text(angle = 90),
             legend.position = "none") +
       labs(title = "Reported Cumulative US Infections",
@@ -66,19 +68,23 @@ function(input, output, session) {
     if (input$logscaletoggle == "Log") {
       p <- p + scale_y_log10(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(name == "death")
+      df2 <- df %>% filter(name == "positive")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
-      df3 <- df %>% filter(name == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[2]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "death")
+      gp$x$data[[3]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[4]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       gp
       
     } else {
       p <- p + scale_y_continuous(labels = comma)
       gp <- ggplotly(p)
-      df2 <- df %>% filter(name == "death")
+      df2 <- df %>% filter(name == "positive")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
-      df3 <- df %>% filter(name == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[2]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      df3 <- df %>% filter(name == "death")
+      gp$x$data[[3]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[4]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       gp
     }
     
@@ -123,8 +129,11 @@ function(input, output, session) {
       pivot_longer(cols = c(positive, missingtests))
 
       
-    p <- ggplot(df1) +
-      geom_bar(aes(x = date, y = value, fill = name), stat = "identity") +
+    p <- ggplot() +
+      geom_area(data = df1 %>% filter(name == "missingtests"), aes(x = date, y = value, fill = name), position = "identity") +
+      geom_line(data = df1 %>% filter(name == "missingtests"), aes(x = date, y = value), color = "black") +
+      geom_area(data = df1 %>% filter(name == "positive"), aes(x = date, y = value, fill = name), position = "identity") +
+      geom_line(data = df1 %>% filter(name == "positive"), aes(x = date, y = value), color = "black") +
       geom_line(data = df, aes(x = date,y = totalTestResults), color = "blue") +
       scale_x_date(date_labels = "%b-%d",date_breaks  = "1 day")  +
       theme(axis.text.x = element_text(angle = 90),
@@ -140,10 +149,12 @@ function(input, output, session) {
       gp <- ggplotly(p)
       df2 <- df1 %>% filter(name == "missingtests")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      gp$x$data[[2]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
       df3 <- df1 %>% filter(name == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[3]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[4]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       df4 <- df %>% pivot_longer(cols = c(totalTestResults))
-      gp$x$data[[3]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
+      gp$x$data[[5]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
       gp
       
     } else {
@@ -151,16 +162,46 @@ function(input, output, session) {
       gp <- ggplotly(p)
       df2 <- df1 %>% filter(name == "missingtests")
       gp$x$data[[1]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
+      gp$x$data[[2]]$text = paste("date: ",df2$date, "<br />value:", format(df2$value, big.mark = ","), "<br />name:", df2$name)
       df3 <- df1 %>% filter(name == "positive")
-      gp$x$data[[2]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[3]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
+      gp$x$data[[4]]$text = paste("date: ",df3$date, "<br />value:", format(df3$value, big.mark = ","), "<br />name:", df3$name)
       df4 <- df %>% pivot_longer(cols = c(totalTestResults))
-      gp$x$data[[3]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
+      gp$x$data[[5]]$text = paste("date: ",df4$date, "<br />value:", format(df4$value, big.mark = ","), "<br />name:", df4$name)
       gp
     }
       
 
     
   })
+  
+  # plot 3 for USA total Tab ----
+  
+  # build from https://stackoverflow.com/questions/37186172/bubble-chart-without-axis-in-r
+  
+  output$bubbleplot = renderPlot({
+    library(packcircles)
+    
+    df <- alldata %>%
+      group_by(state) %>%
+      select(state, positiveIncrease) %>%
+      summarise(sum = sum(positiveIncrease)) %>%
+      arrange(sum)
+    
+    p <- circleRepelLayout(df$sum)
+    d <- circleLayoutVertices(p)
+    
+    p <- ggplot(d, aes(x, y)) + 
+      geom_polygon(aes(group = id, fill = id), 
+                   colour = "black", show.legend = FALSE) +
+      geom_text(data = p$layout, aes(x, y), label = df$state) +
+      scale_fill_distiller(palette = "Pastel1") +
+      theme_void()
+
+    p
+    
+  },
+  height=reactive(ifelse(!is.null(input$innerWidth),input$innerWidth*3/5,0)))
   
   # 1st Plot for Infection by State Tab ----
   output$infectStateplot1message <- renderText({ 
@@ -718,64 +759,21 @@ function(input, output, session) {
     })
   }
   
-  # Minnesota Tab, importing Rmarkdown files  ----
-  output$ui_line <- renderUI({
-    ## using renderUI here because Knitr will not create a slider
-    tagList(
-      sliderInput("nr_points", "", min = 10, max = 100, value = 50),
-      renderPlot({
-        nr <- if (is.null(input$nr_points)) 2 else input$nr_points
-        plot(1:nr, rnorm(nr))
-      })
-    )
-  })
-
-  output$MNtext1 <- renderUI({
-    testi <- "Minnesota"
-    inclRmd("./ColumnLeft.Rmd")
-  })
-  
-  output$MNtext2 <- renderUI({
-    testi <- "Minnesota"
-    inclRmd("./ColumnRight.Rmd")
-  })
-  
   # States Output Tab ----
-  
-  # for (i in input$states){
-  #   local({
-  #     testi <- i
-  #     removeTab("myTabs",
-  #               
-  #     )
-  #   }
+
+  output$ui_statepanel <- renderUI({
     
+    state_choice <- input$states
     
-  
-  
-   observe({
-     for (i in input$states){
-      local({
-      testi <- i
-      appendTab("myTabs",
-                tabPanel(i, tags$p(
-                  fluidRow(
-                    column(6,
-                           renderUI({
-                             inclRmd("./ColumnLeft.Rmd")
-                             })
-                           ),
-                    column(6,
-                           renderUI({
-                             inclRmd("./ColumnRight.Rmd")
-                             })
-                           )
-                    )
-                  )), 
-                select=TRUE)
-      })
-    }
+    do.call(tabsetPanel,
+            lapply(state_choice,  function(state){
+              
+              tabPanel(title = state, state_ui_fun(state))
+              
+            })
+    )
     
-   })
+  })
   
+
 }

@@ -9,13 +9,13 @@ library(gridExtra)
 
 ## Convert to long format for p1 and p3 plots
 dataWide = alldata %>% 
-  filter(state == testi) %>%
+  filter(state == tabstate) %>%
   mutate(Date = as.Date(date,format = "%m/%d/%y"),
          Date = factor(str_remove(Date,"2020-")),
          Currently.sick = positive - recovered,            
          New.cases = as.integer(positiveIncrease),
          Daily.tests = totalTestResultsIncrease,
-         Daily.tests = ifelse(Daily.tests == 66, 367, Daily.tests),   # Known bad datapoint in data set, forcing it to fit
+         Daily.tests = ifelse((Daily.tests == 66 & tabstate == "Minnesota"), 367, Daily.tests),   # Known bad datapoint for MN in data set, forcing it to fit
          PositivePercent = positiveIncrease / Daily.tests,
          ICUPercent = inIcuCumulative / positive,
          HospitalizedPercent = hospitalized / positive
@@ -48,22 +48,19 @@ dataLongDailyTests <- dataWide %>%
 dataWidePlain <- dataWide %>% 
   filter(Date == last(Date))
   
+SO <- StateOrders %>% 
+  filter(state == tabstate) %>%
+  select(-state) %>%
+  pivot_longer(everything())
+
+Bar_Close <- if_else(is.na(SO %>% filter(name == "Bar_Close") %>%  pull(value)), "None", SO %>% filter(name == "Bar_Close") %>%  pull(value))
+School_Close <- if_else(is.na(SO %>% filter(name == "School_Close") %>%  pull(value)), "None", SO %>% filter(name == "School_Close") %>%  pull(value))
+StayHomeOrder <- if_else(is.na(SO %>% filter(name == "StayHomeOrder") %>%  pull(value)), "None", SO %>% filter(name == "StayHomeOrder") %>%  pull(value))
 
 ```
 
-## `r renderText(testi)` COVID-19 Summary 
+## `r renderText(tabstate)` COVID-19 Summary 
 #### (`r format(Sys.time(), "%Y-%m-%d")`)
-
-```{r test, echo=FALSE, warning = FALSE, message=FALSE}
-
-renderText({
-  paste("This worked?",
-  input$states[1],
-  "did it really?",
-  testi)
-})
-
-```
 
 * Testing
   + Total number of completed tests: **`r prettyNum(dataWidePlain$Total.tested, big.mark=",")`** (up `r (dataWidePlain$Daily.tests)`)
@@ -74,6 +71,10 @@ renderText({
   - Hospitalization   
   - Hospitalized as of today: **`r (dataWidePlain$Currently.hospitalized)`** (up `r (dataWidePlain$New.hospitalized)`)
   - Hospitalized in ICU as of today: **`r (dataWidePlain$ICU)`** (`r (ifelse(dataWidePlain$New.ICU <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.ICU)))`)
+* Govvenor Orders
+  - Resturant and Bar Closures: **`r Bar_Close`**
+  - School Closures: **`r School_Close`**
+  - Stay Home Orders: **`r StayHomeOrder`**
 
 ```{r plot1, echo=FALSE, warning = FALSE, message=FALSE}
 
@@ -84,12 +85,19 @@ df <- dataLongDailyTests %>%
 
 loclevels <- droplevels(df$Date)
 
+SO <- StateOrders %>% 
+  filter(state == tabstate) %>%
+  select(-state) %>%
+  pivot_longer(everything())
+
 loc = dataLongDailyTests %>%
   drop_na(Daily.tests) %>%
   distinct(Date) %>%
   mutate(Loc = as.integer(factor(Date))) %>%
-  filter(Date %in% c("03-17","03-18","03-28")) %>%
+  filter(Date %in% SO$value) %>%
   pull(Loc)
+
+
 
 p1 <- ggplot(df, aes(Date, Value, fill = Variable, label = Value)) +
   geom_col(position = "identity") +
@@ -108,9 +116,9 @@ p1 <- ggplot(df, aes(Date, Value, fill = Variable, label = Value)) +
        fill = "") +
   geom_vline(xintercept = loc, lty = 2) + 
   annotate("label", 
-           x = c("03-16","03-20","03-29") ,
+           x = SO$value ,
            y = c(max(df$Value) * 0.50, max(df$Value) * 0.40, max(df$Value) * 0.50), 
-           label = c("Bar close","School close","StayHomeOrder")) +
+           label = SO$name) +
   scale_fill_brewer(name = "", palette = "Set2", labels = c("New case", "New death"))
 
 renderPlot({
@@ -128,11 +136,16 @@ df <- dataWide %>%
 
 loclevels <- droplevels(df$Date)
 
+SO <- StateOrders %>% 
+  filter(state == tabstate) %>%
+  select(-state) %>%
+  pivot_longer(everything())
+
 loc = dataLongDailyTests %>%
   drop_na(Daily.tests) %>%
   distinct(Date) %>%
   mutate(Loc = as.integer(factor(Date))) %>%
-  filter(Date %in% c("03-17","03-18","03-28")) %>%
+  filter(Date %in% SO$value) %>%
   pull(Loc)
 
 df <- df %>%
@@ -155,10 +168,10 @@ p2 <- ggplot(df, aes(x = Date, y = PositivePercent * 100, size = Daily.tests, la
         legend.text = element_text(size = 12)) +
   geom_vline(xintercept = loc, lty = 2) + 
   annotate("label", 
-           x = c("03-16","03-20","03-29"),
+           x = SO$value,
            #y = c(12, 15, 15), 
            y = c(max(df$PositivePercent)* 100 * 0.75, max(df$PositivePercent)* 100 * 0.65, max(df$PositivePercent)* 100 * 0.75),
-           label = c("Bar close","School close","StayHomeOrder")) +
+           label = SO$name) +
   guides(fill = guide_legend(), 
          size = guide_legend())  +
   scale_fill_gradient(low = "yellow", 

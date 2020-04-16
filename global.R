@@ -82,7 +82,7 @@ DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
     labs(title = titlelab,
          x = "Date", 
          y = Ylab)
-  
+
   if (logscaletoggle == "Log") {
     
     p <- p + scale_y_log10(labels = comma)
@@ -258,3 +258,85 @@ statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=F
 baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
 fileName <- "states-daily.csv"
 alldata <- garykac_csv("states-daily.csv", baseURL)
+
+
+# For state UI page
+state_ui_fun <- function(state){
+  
+  #variable that the .Rmd files are exposed to that works as a filter
+  tabstate <- state
+  
+  fluidRow(
+    column(6,
+           renderUI({
+             inclRmd("./ColumnLeft.Rmd")
+           })
+    ),
+    column(6,
+           renderUI({
+             inclRmd("./ColumnRight.Rmd")
+           })
+    )
+  )
+  
+}
+# state Shutdowns data ----
+# StayHomeOrder data from: https://www.nytimes.com/interactive/2020/us/coronavirus-stay-at-home-order.html
+# Schoo_Close data from: https://thejournal.com/Articles/2020/03/17/List-of-States-Shutting-Down-All-Their-Schools-Grows-to-36.aspx?Page=3
+# Bar_Close data from: https://www.today.com/food/which-states-have-closed-restaurants-bars-due-coronavirus-t176039
+StateOrders <- tribble(
+  ~state, ~Bar_Close,~School_Close,~StayHomeOrder,
+  #--|--|--|--        
+  "Alabama",        NA, "03-16","04-04",
+  "Alaska",         NA, "03-16","03-28",
+  "Arizona",        NA, "03-16","03-31",
+  "Arkansas",       NA, "03-17", NA,
+  "California",     NA, "03-16","03-19",
+  "Colorado",       "03-17", "03-23","03-26",
+  "Connecticut",    NA, "03-16","03-23",
+  "Delaware",       NA, "03-16","03-24",
+  "Florida",        "03-17", "03-16","04-03",
+  "Georgia",        NA, "03-18","04-03",
+  "Hawaii",         NA, "03-16","03-25",
+  "Idaho",          NA, "03-23","03-25",
+  "Illinois",       "03-16", "03-16","03-21",
+  "Indiana",        "03-16", "03-16","03-25",
+  "Iowa",           "03-17", "03-16", NA,
+  "Kansas",         NA, "03-16","03-30",
+  "Kentucky",       "03-16", "03-16","03-26",
+  "Louisiana",      NA, "03-16","03-23",
+  "Maine",          NA, "03-31","04-02",
+  "Maryland",       "03-12", "03-16","03-30",
+  "Massachusetts",  "03-17", "03-16","03-24",
+  "Michigan",       NA, "03-16","03-24",
+  "Minnesota",      "03-17", "03-18","03-28",
+  "Mississippi",    NA, "03-16","04-03",
+  "Missouri",       "03-13", "03-16","04-06",
+  "Montana",        NA, "03-16","03-28",
+  "Nebraska",       NA, "03-16", NA,
+  "Nevada",         "03-24", "03-16","04-01",
+  "New Hampshire",  NA, "03-16","03-28",
+  "New Jersey",     "03-17", "03-18","03-21",
+  "New Mexico",     NA, "03-16","03-24",
+  "New York",       "03-17", "03-18","03-22",
+  "North Carolina", "03-17", "03-16","03-30",
+  "North Dakota",   NA, "03-16","03-24",
+  "Ohio",           "03-15", "03-16","03-24",
+  "Oklahoma",       NA, "03-17", NA,
+  "Oregon",         "03-16", "03-16","03-23",
+  "Pennsylvania",   "03-16", "03-16","04-01",
+  "Rhode Island",   "03-09", "03-16","03-28",
+  "South Carolina", "03-17", "03-16","04-07",
+  "South Dakota",   NA, "03-16", NA,
+  "Tennessee",      NA, "03-20","04-01",
+  "Texas",          NA, "03-20","04-02",
+  "Utah",           NA, "03-16", NA,
+  "Vermont",        "03-13", "03-18","03-25",
+  "Virginia",       NA, "03-16","03-30",
+  "Washington",     "03-16", "03-16","03-23",
+  "West Virginia",  NA, "03-16","03-24",
+  "Wisconsin",      NA, "03-18","03-25",
+  "Wyoming",        NA, "03-16","03-28"
+)
+
+

@@ -28,14 +28,22 @@ ui <- fluidPage(
     
     # Sidebar panel for inputs ----
     sidebarPanel(
+      
+      tags$head(tags$script('$(document).on("shiny:connected", function(e) {
+                            Shiny.onInputChange("innerWidth", window.innerWidth);
+                            });
+                            $(window).resize(function(e) {
+                            Shiny.onInputChange("innerWidth", window.innerWidth);
+                            });
+                            ')
+                ),
+      
       actionLink("newTab", "Append tab"),
       # selection between log and cartesian scale
       radioButtons("logscaletoggle", 
-                   label = h5("Toggle Scales Log or Cartesian"), 
+                   label = h5("Toggle Scales Log or Cartesian"),
                    choices = c("Cartesian", "Log"), 
                    selected = "Log"),
-      
-      
       
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -65,8 +73,7 @@ ui <- fluidPage(
                          choices = state.name,
                          selected = c("Minnesota", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
                          inline = TRUE),
-      
-    width = 3),
+      width = 3),
     
     # Main panel for displaying outputs ----
     mainPanel(
@@ -80,8 +87,12 @@ ui <- fluidPage(
                            plotlyOutput("CumulatedPlot", width = "100%"),
                            br(),
                            textOutput("plot2message"),
-                           plotlyOutput("CumulatedPlotinfected", width = "100%")
+                           plotlyOutput("CumulatedPlotinfected", width = "100%"),
+                           plotOutput("bubbleplot", width = "100%")
                            ),
+                  tabPanel("State Reports",
+                           uiOutput("ui_statepanel")
+                  ),
                   # Tab Infections by State ----
                   tabPanel("Infections by State", 
                            h2("Infections by State"),
@@ -137,31 +148,6 @@ ui <- fluidPage(
                            textOutput("HospStateplot4message"),
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
-                           ),
-                  # Tab Testing wip ----
-                  tabPanel("Testing wip", 
-                           textOutput("TestStateplot1message"),
-                           plotlyOutput("NewStatePlot", width = "100%"),
-                           uiOutput("plots")
-                           ),
-                  # Tab Minnesota ----
-                  tabPanel("Minnesota", 
-                           fluidRow(
-                             column(6,
-                                    uiOutput("MNtext1")
-                                    ),
-                             column(6,
-                                    uiOutput("MNtext2")
-                                    )
-                             )
-                           ),
-                  # Tab State OutPuts ----
-                  
-                  tabPanel("State OutPuts",
-                           tabsetPanel(id="myTabs", type="pills")
-                          # tabsetPanel("StateTabset",
-                          #   uiOutput("StateTabs")
-                          #   )
                            )
       )
     )
