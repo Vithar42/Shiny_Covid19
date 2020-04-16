@@ -35,16 +35,7 @@ ui <- fluidPage(
                    choices = c("Cartesian", "Log"), 
                    selected = "Log"),
       
-      # br() element to introduce extra vertical spacing ----
-      br(),
       
-      # Input: Select the random distribution type ----
-      checkboxGroupInput("states", 
-                         label = h5("Selected States"), 
-                         choices = state.name,
-                         selected = c("Minnesota", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
-                         #selected = c("Louisiana","New York ","Michigan","Nebraska","Kentucky","Illinois ","Massachusetts","Colorado","Florida","Washington","Oregon ","North Carolina","California","Minnesota", "Wisconsin", "Ohio", "Iowa"),
-                         inline = TRUE),
       
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -63,9 +54,19 @@ ui <- fluidPage(
       sliderInput("deathrate", 
                   label = h5("Death Rate [%]"),
                   min = 0, max = 10, step = 0.1,
-                  value = deathrate)
+                  value = deathrate),
       
-    ),
+      # br() element to introduce extra vertical spacing ----
+      br(),
+      
+      # Input: Select the random distribution type ----
+      checkboxGroupInput("states", 
+                         label = h5("Selected States"), 
+                         choices = state.name,
+                         selected = c("Minnesota", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+                         inline = TRUE),
+      
+    width = 3),
     
     # Main panel for displaying outputs ----
     mainPanel(

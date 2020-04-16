@@ -664,12 +664,9 @@ function(input, output, session) {
   
   
   # 2nd to n Plots for Testing Tab ----
-  
+  # max plots set to 50 so all states can be accounted for
   max_plots <- 50
-  
-  # max_plats <- reactiveVal(length(input$states))
-  
-  #
+
   # Insert the right number of plot output objects into the web page
   output$plots <- renderUI({
     plot_output_list <- lapply(1:length(input$states), function(i) {
@@ -743,20 +740,25 @@ function(input, output, session) {
     inclRmd("./ColumnRight.Rmd")
   })
   
-  
-  
   # States Output Tab ----
-
-
-  observe({
+  
+  # for (i in input$states){
+  #   local({
+  #     testi <- i
+  #     removeTab("myTabs",
+  #               
+  #     )
+  #   }
     
-    for (i in input$states){
+    
+  
+  
+   observe({
+     for (i in input$states){
       local({
       testi <- i
       appendTab("myTabs",
                 tabPanel(i, tags$p(
-                  
-                  #paste("I'm tab", i)
                   fluidRow(
                     column(6,
                            renderUI({
@@ -774,6 +776,6 @@ function(input, output, session) {
       })
     }
     
-  })
+   })
   
 }
