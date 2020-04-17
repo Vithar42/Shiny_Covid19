@@ -70,7 +70,26 @@ garykac_csv = function(fileName, baseURL) {
 
 
 # Reused Plot Functions ----
-# used for 1st plot on each tab
+# Growth Plot ----
+MyDate <- df
+var <- "positive"
+
+#GrowthPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
+#  
+#  t <- 1:(length(MyData$dayNo)*3)
+#  model <- SummarizeGrowth(MyData$dayNo, MyData$var)
+#  predict <- model$vals$k / (1 + ((model$vals$k - model$vals$n0) / model$vals$n0) * exp(-model$vals$r * t))
+#  
+#  df_predict <- data.frame(dayNo = t, pred = predict)
+#  
+#  
+#  ggplot(MyData, aes_string(x = "dayNo", y = var)) + 
+#    geom_point(alpha=0.7) +
+#    geom_line(data = df_predict, aes_string(x = "dayNo", y = "pred"))
+#  
+#}
+
+# used for 1st plot on each tab ----
 DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "date", y = var, colour = "state")) +
@@ -96,7 +115,7 @@ DateStateCompPlot <- function(MyData, var, titlelab, Ylab, logscaletoggle) {
   
 }
 
-# used for n plots on Hospiliation tab
+# used for n plots on Hospiliation tab ----
 CountPlotFunction <- function(MyData, ii) {
   
   MyData <- MyData %>%
@@ -118,7 +137,7 @@ CountPlotFunction <- function(MyData, ii) {
   return(MyPlot)
 }
 
-# used for 2nd plots on all tabs
+# used for 2nd plots on all tabs ----
 slidestartdatePlotFunction <- function(MyData, var, titlelab, Xlab, Ylab, slidedate, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +
@@ -144,7 +163,7 @@ slidestartdatePlotFunction <- function(MyData, var, titlelab, Xlab, Ylab, slided
   
 }
 
-# used for facet plots on all tabs
+# used for facet plots on all tabs ----
 facetPlotFunction <- function(MyData, var, logscaletoggle) {
   
   p <- ggplot(MyData, aes_string(x = "dayNo", y = var , color = "state")) +
@@ -165,7 +184,7 @@ facetPlotFunction <- function(MyData, var, logscaletoggle) {
   }
 }
 
-# used for 4th plots on all tabs
+# used for 4th plots on all tabs ----
 slidestartdatePopPlotFunction <- function(MyData, var, titlelab, Xlab, Ylab, slidedate, logscaletoggle) {
 
   p <- ggplot(MyData, aes_string(x = "dayNo", y = var, colour = "state")) +

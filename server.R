@@ -1,6 +1,7 @@
 library(tidyverse)
 library(scales)
 library(plotly)
+library(packcircles)
 #source("global.R")
 
 # Pull in Data using datawrangler ----  
@@ -180,8 +181,7 @@ function(input, output, session) {
   # build from https://stackoverflow.com/questions/37186172/bubble-chart-without-axis-in-r
   
   output$bubbleplot = renderPlot({
-    library(packcircles)
-    
+
     df <- alldata %>%
       group_by(state) %>%
       select(state, positiveIncrease) %>%
@@ -200,9 +200,36 @@ function(input, output, session) {
 
     p
     
-  },
-  height=reactive(ifelse(!is.null(input$innerWidth),input$innerWidth*3/5,0)))
+  })
   
+  output$bubbleplotcap = renderPlot({
+    
+    df <- alldata %>%
+      # filter(state %in% input$states) %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/100000) %>%
+      mutate(positivepop =  positive/pop)
+    
+    df <- df %>%
+      group_by(state) %>%
+      select(state, positivepop) %>%
+      summarise(sum = max(positivepop)) %>%
+      arrange(sum)
+    
+    p <- circleRepelLayout(df$sum)
+    d <- circleLayoutVertices(p)
+    
+    p <- ggplot(d, aes(x, y)) + 
+      geom_polygon(aes(group = id, fill = id), 
+                   colour = "black", show.legend = FALSE) +
+      geom_text(data = p$layout, aes(x, y), label = df$state) +
+      scale_fill_distiller(palette = "Pastel1") +
+      theme_void()
+    
+    p
+    
+  })
+
   # 1st Plot for Infection by State Tab ----
   output$infectStateplot1message <- renderText({ 
     
@@ -235,19 +262,45 @@ function(input, output, session) {
   
   output$linedupstatePlot = renderPlotly({
     
-    df <- statedata() %>%
+    df <- alldata %>%
+      filter(state %in% input$states) %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/100000) %>%
+      mutate(positivepop =  positive/pop,
+             deathpop =  death/pop,
+             hospitalizedpop = hospitalized/pop)
+    
+    
+    df <- df %>%
+      filter(state == "Minnesota") %>%
       group_by(state) %>%
       mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
       mutate(dayNo = cumsum(dayNo) - 1) %>%
-      filter(dayNo >= 0)
+      filter(dayNo >= 0) %>%
+      select(dayNo, positive)
     
-    slidestartdatePlotFunction(df, 
-                               "positive", 
-                               "Day 0 Adjusted Infections by State", 
-                               "Confirmed Cases", 
-                               "Cumulitave Cases", 
-                               input$dayo, 
-                               input$logscaletoggle)
+    
+    library(growthcurver)
+    
+    t <- 1:(length(df$dayNo)*3)
+    model <- SummarizeGrowth(df$dayNo, df$positive)
+    predict <- model$vals$k / (1 + ((model$vals$k - model$vals$n0) / model$vals$n0) * exp(-model$vals$r * t))
+
+    df_predict <- data.frame(dayNo = t, pred = predict)
+
+    
+    ggplot(df, aes(x = dayNo, y = positive)) + 
+      geom_point(alpha=0.7) +
+      geom_line(data = df_predict, aes(x = dayNo, y = pred))
+    
+    
+    # slidestartdatePlotFunction(df, 
+    #                           "positive", 
+    #                           "Day 0 Adjusted Infections by State", 
+    #                           "Confirmed Cases", 
+    #                           "Cumulitave Cases", 
+    #                           input$dayo, 
+    #                           input$logscaletoggle)
     
     ggplotly()
     

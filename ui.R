@@ -88,8 +88,22 @@ ui <- fluidPage(
                            br(),
                            textOutput("plot2message"),
                            plotlyOutput("CumulatedPlotinfected", width = "100%"),
-                           plotOutput("bubbleplot", width = "100%")
+                           fluidRow(
+                             column(6,
+                                    h2("Bubble Chart"),
+                                    plotOutput("bubbleplot")
+                                    )
+                             ),
+                           fluidRow(
+                             column(6,
+                                    h2("Bubble Chart Sized per 100k"),
+                                    plotOutput("bubbleplotcap")
+                                    )
+                             ),
                            ),
+                           #h2("Bubble Chart Sized per 100k"),
+                           #plotOutput("bubbleplotcap")
+                           #),
                   tabPanel("State Reports",
                            uiOutput("ui_statepanel")
                   ),
