@@ -64,9 +64,9 @@ StayHomeOrder <- if_else(is.na(SO %>% filter(name == "StayHomeOrder") %>%  pull(
 
 * Testing
   + Total number of completed tests: **`r prettyNum(dataWidePlain$Total.tested, big.mark=",")`** (up `r (dataWidePlain$Daily.tests)`)
-  + Total positive: **`r (dataWidePlain$Total.cases)`** (up `r (dataWidePlain$New.cases)`)
+  + Total positive: **`r prettyNum(dataWidePlain$Total.cases, big.mark=",")`** (up `r (dataWidePlain$New.cases)`)
 * Case info   
-  + Patients who are currently sick: **`r (dataWidePlain$Currently.sick)`** (`r (ifelse(dataWidePlain$New.sick <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.sick)))`)
+  + Patients who are currently sick: **`r prettyNum(dataWidePlain$Currently.sick, big.mark=",")`** (`r (ifelse(dataWidePlain$New.sick <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.sick)))`)
 + Total deaths: **`r (dataWidePlain$Total.deaths)`** (`r (ifelse(dataWidePlain$New.deaths <0, sprintf("down"), sprintf("up")))` `r (abs((dataWidePlain$New.deaths)))`)
   - Hospitalization   
   - Hospitalized as of today: **`r (dataWidePlain$Currently.hospitalized)`** (up `r (dataWidePlain$New.hospitalized)`)

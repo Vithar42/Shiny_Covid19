@@ -262,7 +262,7 @@ make_table <- function(dat, width = "50%") {
   )
 }
 
-# Pull in Data using datawrangler ----  
+# Pull in Data with basic datawrangler ----  
 # Pull in State population data from the sensus ----  
 filename <-  "https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv"
 statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=FALSE) %>%
@@ -357,5 +357,7 @@ StateOrders <- tribble(
   "Wisconsin",      NA, "03-18","03-25",
   "Wyoming",        NA, "03-16","03-28"
 )
+
+
 
 
