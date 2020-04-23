@@ -775,5 +775,15 @@ function(input, output, session) {
     
   })
   
+  output$ui_predictive <- renderUI({
+    
+    fluidRow(
+        renderUI({
+          inclRmd("./predictions.Rmd")
+          })
+        )
+    
+    })
+    
 
 }

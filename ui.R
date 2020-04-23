@@ -148,6 +148,9 @@ ui <- fluidPage(
                            textOutput("HospStateplot4message"),
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
+                           ),
+                  tabPanel("Predicted Infection", 
+                           uiOutput("ui_predictive")
                            )
       )
     )

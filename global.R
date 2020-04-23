@@ -280,6 +280,7 @@ state_ui_fun <- function(state){
   )
   
 }
+
 # state Shutdowns data ----
 # StayHomeOrder data from: https://www.nytimes.com/interactive/2020/us/coronavirus-stay-at-home-order.html
 # Schoo_Close data from: https://thejournal.com/Articles/2020/03/17/List-of-States-Shutting-Down-All-Their-Schools-Grows-to-36.aspx?Page=3
