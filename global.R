@@ -257,7 +257,8 @@ statePop <-  read.csv(file.path(filename), check.names=FALSE, stringsAsFactors=F
 # Pull in covidtracking.com Data from https://github.com/garykac/covid19/tree/master/data ----  
 baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
 fileName <- "states-daily.csv"
-alldata <- garykac_csv("states-daily.csv", baseURL)
+alldata <- garykac_csv("states-daily.csv", baseURL) %>%
+  filter(date > as.Date("2020-03-01"))
 
 
 # For state UI page
@@ -279,6 +280,20 @@ state_ui_fun <- function(state){
     )
   )
   
+}
+
+# For state UI page
+state_ui_Pred_fun <- function(state, logscaletoggle){
+  
+  #variable that the .Rmd files are exposed to that works as a filter
+  tabstate <- state
+  logscaletoggle <- logscaletoggle
+  
+  fluidRow(
+     renderUI({
+       inclRmd("./predictions.Rmd")
+       })
+     )
 }
 
 # state Shutdowns data ----

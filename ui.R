@@ -150,6 +150,8 @@ ui <- fluidPage(
                            plotlyOutput("facetPlot8", width = "100%")
                            ),
                   tabPanel("Predicted Infection", 
+                           plotlyOutput("predictor", width = "100%"),
+                           textOutput("predictormessage"),
                            uiOutput("ui_predictive")
                            )
       )

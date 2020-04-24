@@ -775,15 +775,100 @@ function(input, output, session) {
     
   })
   
+  # Predicted Infection Tab ----
+  
+  output$predictor = renderPlotly({
+    
+    #state_choice <- input$states
+    
+    df <- alldata %>%
+      filter(state %in% input$states) %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/100000) %>%
+      mutate(positivepop =  positive/pop,
+             deathpop =  death/pop,
+             hospitalizedpop = hospitalized/pop)
+    
+    df <- df %>%
+      group_by(state) %>%
+      mutate(dayNo = if_else(positive >= 1, 1, 0, missing = NULL)) %>%
+      mutate(dayNo = cumsum(dayNo) - 1) %>%
+      filter(dayNo >= 0) %>%
+      select(dayNo, var = positive)
+    
+    
+    modelel10_fun <- function(data, i){
+      
+      data <- data %>%
+        ungroup(state) %>%
+        filter(state == i) %>%
+        select(-state)
+      
+      t <- 1:200
+      a <- max(data$var)/2
+      b <- min(data$var)*2
+      c <- 0.1
+      
+      model10 = nlsfit(data, model = 10, start = c (a, b, c))
+      predict10 <- model10[2]$Parameters$var[1] * exp(-model10[2]$Parameters$var[2] * exp(-model10[2]$Parameters$var[3] * t))
+      
+      return(data.frame(state = i, dayNo = t, pred = predict10))
+      
+    }
+    
+    statelist <- df %>%
+      distinct(state) %>%
+      pull(state)
+    
+    df_predict10 <- data.frame(state = "start", dayNo = 0, pred = 0)
+    
+    for (i in statelist) {
+      
+      try(df_predict10 <- rbind(df_predict10, modelel10_fun(df, i)))
+      
+    }
+    
+    p <- ggplot(df, aes(x = dayNo, y = var, colour = state)) + 
+      geom_point(alpha = 0.7) +
+      geom_line(data = df_predict10, aes(x = dayNo, y = pred, colour = state)) +
+      theme(legend.position = "none") +
+      labs(title = "Predictive Modeling", 
+           y = "Infectoins")
+    
+    if (input$logscaletoggle == "Log") {
+      
+      p <- p + scale_y_log10(labels = comma)
+      return(p)
+      
+    } else {
+      p <- p + scale_y_continuous(labels = comma)
+      return(p)
+      
+    }
+    
+    
+    ggplotly(p)
+    
+  })
+  
+  output$predictormessage <- renderText({ 
+    
+    "Not all states have data that the growth moddle can fit.  If there is no continous line, the model failed."
+    
+  })
+  
   output$ui_predictive <- renderUI({
     
-    fluidRow(
-        renderUI({
-          inclRmd("./predictions.Rmd")
-          })
-        )
+    state_choice <- input$states
     
-    })
+    do.call(tabsetPanel,
+            lapply(state_choice,  function(state){
+              
+              tabPanel(title = state, state_ui_Pred_fun(state, input$logscaletoggle))
+              
+            })
+    )
     
-
+  })
+  
 }

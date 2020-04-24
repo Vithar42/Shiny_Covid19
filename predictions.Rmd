@@ -1,6 +1,6 @@
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(growthcurver)
 library(tidyverse)
 library(easynls)
@@ -11,80 +11,39 @@ library(growthmodels)
 
 ```{r global, include=FALSE}
 # things that will be globaly available when Shiny is running...
- source("global.R")
- state_choice <- "Michigan"
- 
- input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
-              deathrate = 0.8,
-              dayo = 1,
-              dayodeath = 5,
-              logscaletoggle = "Log")
+# source("global.R")
+# tabstate <- "Michigan"
+# dayo <- 100
+#
+# input <- list(states = c("Minnesota", "Michigan", "Wisconsin","North Dakota", "Ohio", "South Dakota", "Iowa"),
+#              deathrate = 0.8,
+#              dayo = 1,
+#              dayodeath = 5,
+#              logscaletoggle = "Log")
 
 ```
 
-## Growth Plot of `r state_choice`
-
-### Formula used in the growthcurver package
-$y = \frac{k}{1+\frac{(k-n_0)}{n_o}} * e^\left(-r * t \right)$
-
-### Gompertz curve
-$N(t)=N_0 * e^\left(\ln\left(\frac{N_I}{N_0}\right)\right)(1-e^\left(-bt\right)))$
+## Growth Plots of `r renderText(tabstate)`  
 
 
-```{r cars}
-#
+```{r plot2}
+
+renderPlot({
+  
 #state_choice <- input$states
-#
-#df <- alldata %>%
-#    filter(state %in% state_choice) %>%
-#    left_join(statePop, by = "state") %>%
-#    mutate(pop = pop/100000) %>%
-#    mutate(positivepop =  positive/pop,
-#           deathpop =  death/pop,
-#           hospitalizedpop = hospitalized/pop)
-#  
-#df <- df %>%
-#  # filter(state == state_choice) %>%
-#  group_by(state) %>%
-#  mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-#  mutate(dayNo = cumsum(dayNo) - 1) %>%
-#  filter(dayNo >= 0) %>%
-#  ungroup(state) %>%
-#  select(dayNo, var = positive)
-#  
-#t <- 1:(length(df$dayNo)*3)
-#a <- max(df$var)/2
-#b <- min(df$var)
-#c <- 0.05
-#
-## 10 = "y~a*exp(-b*exp(-c*x)" gompertz
-#model10 = nlsfit(df, model = 10, start=c(a, b, c))
-#predict10 <- model10[2]$Parameters$var[1] * exp(-model10[2]$Parameters$var[2] * exp(-model10[2]$Parameters$var[3] * t))
-#df_predict10 <- data.frame(dayNo = t, pred = predict10)
-#
-#p <- ggplot(df, aes(x = dayNo, y = var)) + 
-#  geom_point(alpha=0.7) +
-#  geom_line(data = df_predict10, aes(x = dayNo, y = pred), color = "blue")
-#
-#ggplotly(p)
-#    
-```
-
-```{r cars2}
-
-state_choice <- input$states
 
 df <- alldata %>%
-    filter(state %in% state_choice) %>%
-    left_join(statePop, by = "state") %>%
-    mutate(pop = pop/100000) %>%
-    mutate(positivepop =  positive/pop,
-           deathpop =  death/pop,
-           hospitalizedpop = hospitalized/pop)
+  filter(state == tabstate) %>%
+  # ilter(state %in% state_choice) %>%
+  left_join(statePop, by = "state") %>%
+  mutate(pop = pop/100000) %>%
+  mutate(positivepop =  positive/pop,
+         deathpop =  death/pop,
+         hospitalizedpop = hospitalized/pop)
   
 df <- df %>%
   group_by(state) %>%
-  mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+  mutate(dayNo = if_else(positive >= 1, 1, 0, missing = NULL)) %>%
   mutate(dayNo = cumsum(dayNo) - 1) %>%
   filter(dayNo >= 0) %>%
   select(dayNo, var = positive)
@@ -97,12 +56,12 @@ modelel10_fun <- function(data, i){
     filter(state == i) %>%
     select(-state)
   
-  t <- 1:100
+  t <- 1:200
   a <- max(data$var)/2
   b <- min(data$var)*2
   c <- 0.1
   
-  model10 = nlsfit(data, model = 10, start=c(a, b, c))
+  model10 = nlsfit(data, model = 10, start = c (a, b, c))
   predict10 <- model10[2]$Parameters$var[1] * exp(-model10[2]$Parameters$var[2] * exp(-model10[2]$Parameters$var[3] * t))
   
   return(data.frame(state = i, dayNo = t, pred = predict10))
@@ -115,30 +74,40 @@ statelist <- df %>%
 
 df_predict10 <- data.frame(state = "start", dayNo = 0, pred = 0)
 
-for (i in statelist){
+for (i in statelist) {
   
   try(df_predict10 <- rbind(df_predict10, modelel10_fun(df, i)))
   
 }
 
 p <- ggplot(df, aes(x = dayNo, y = var, colour = state)) + 
-  geom_point(alpha=0.7) +
+  geom_point(alpha = 0.7) +
   geom_line(data = df_predict10, aes(x = dayNo, y = pred, colour = state)) +
   theme(legend.position = "none") +
   labs(title = "Predictive Modeling", 
        y = "Infectoins")
 
-ggplotly(p)
-    
+
+    if (logscaletoggle == "Log") {
+      
+      p <- p + scale_y_log10(labels = comma)
+      return(p)
+      
+    } else {
+      p <- p + scale_y_continuous(labels = comma)
+      return(p)
+      
+    }
+
+  p
+
+})
+
+#p3 <- ggplotly(p)
+
+#renderPlotly({
+#  p3
+#  })
+#
 ```
 
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
