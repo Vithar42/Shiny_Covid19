@@ -7,7 +7,7 @@ library(kableExtra)
 library(tidyverse)
 library(gridExtra)
 
-tabstate <- "Minnesota"
+#tabstate <- "Minnesota"
 
 ## Convert to long format for p1 and p3 plots
 dataWide = alldata %>%

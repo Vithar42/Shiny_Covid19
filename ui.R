@@ -153,6 +153,12 @@ ui <- fluidPage(
                            plotlyOutput("predictor", width = "100%"),
                            textOutput("predictormessage"),
                            uiOutput("ui_predictive")
+                           ),
+                  tabPanel("StateBars",
+                           h2("Comparison by States"),
+                           dateInput("BarDate", "Graphs Date:", value = "2020-05-10"),
+                           textOutput("StateBarsmessage1"),
+                           imageOutput("StateBarsplot1", width = "100%")
                            )
       )
     )
