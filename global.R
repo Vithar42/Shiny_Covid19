@@ -39,6 +39,9 @@ NYtimes_tsv = function(fileName, baseURL) {
   # return(data)
 }
 
+baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
+fileName <- "states-daily.csv"
+
 #### Function to check if it data is older than an hour ####
 garykac_csv = function(fileName, baseURL) {
   
@@ -46,9 +49,9 @@ garykac_csv = function(fileName, baseURL) {
 
   #### Code to pull dataset live from source ####
   data = read_csv(file.path(baseURL, fileName)) %>%                                      # inport data from url
-    replace(is.na(.), 0) %>%                                                              # Make all NA's in table zeros
-    mutate(date = as.Date(as.character(date), "%Y%m%d")) %>%                              # Fixes the date to a standard format
-    select(-pending, -total, -hash, -dateChecked, -fips, abb = state) %>%                 # Remove unused columns
+    mutate_if(is.numeric , replace_na, replace = 0) %>%                                  # Make all NA's in table zeros
+    mutate(date = as.Date(as.character(date), "%Y%m%d")) %>%                             # Fixes the date to a standard format
+    select(-pending, -total, -hash, -dateChecked, -fips, abb = state) %>%                # Remove unused columns
     left_join(statename, by = "abb") %>%
     filter(state %in% state.name) %>%
     arrange(state, date) %>%
@@ -299,6 +302,23 @@ state_ui_Pred_fun <- function(state, logscaletoggle){
        })
      )
 }
+
+
+
+# For stateTesting UI page
+state_ui_Testing_fun <- function(state, logscaletoggle){
+  
+  #variable that the .Rmd files are exposed to that works as a filter
+  tabstate <- state
+  logscaletoggle <- logscaletoggle
+  
+  fluidRow(
+    renderUI({
+      inclRmd("./StateTesting.Rmd")
+    })
+  )
+}
+
 
 # state Shutdowns data ----
 # StayHomeOrder data from: https://www.nytimes.com/interactive/2020/us/coronavirus-stay-at-home-order.html
