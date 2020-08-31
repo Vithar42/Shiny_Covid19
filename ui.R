@@ -1,7 +1,9 @@
 library(shiny)
 library(plotly)
+library(leaflet)
+library(sf)
 
-# calcuation for death rate slider
+# calcuation for death rate slider ----
 df <- alldata %>%
   group_by(date) %>%
   select(date, death, positive) %>%
@@ -121,20 +123,6 @@ ui <- fluidPage(
                            plotlyOutput("lineduppercapitadeahtstatePlot", width = "100%"),
                            plotlyOutput("facetPlot4", width = "100%")
                            ),
-                  # Tab Predicted Infection ----
-                  tabPanel("Predicted Infection", 
-                           h2("Predicted Infections by State"),
-                           textOutput("PredStateplot1message"),
-                           plotlyOutput("stateDeathratePlot", width = "100%"),
-                           h2("Adjusted Day 0 Plot"),
-                           textOutput("PredStateplot2message"),
-                           plotlyOutput("linedupstatedeathratePlot", width = "100%"),
-                           plotlyOutput("facetPlot5", width = "100%"),
-                           h2("Adjusted Day 0 Plot Per 100,000 people"),
-                           textOutput("PredStateplot4message"),
-                           plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
-                           plotlyOutput("facetPlot6", width = "100%")
-                           ),
                   # Tab Hospitalizations ----
                   tabPanel("Hospitalizations", 
                            h2("Hospitalizations by State"),
@@ -149,18 +137,55 @@ ui <- fluidPage(
                            plotlyOutput("SlideStateHospPopPlot", width = "100%"),
                            plotlyOutput("facetPlot8", width = "100%")
                            ),
+                  # Tab Predicted Infection ----
                   tabPanel("Predicted Infection", 
                            plotlyOutput("predictor", width = "100%"),
                            textOutput("predictormessage"),
                            uiOutput("ui_predictive")
                            ),
+                  # Tab StateTesting ----
                   tabPanel("StateTesting",
                            h2("Comparison of Testing by States"),
                            #dateInput("BarDate", "Graphs Date:", value = "2020-05-10"),
                            textOutput("StateTestingmessage"),
                            #plotlyOutput("StateTestingplot1", width = "100%"),
                            uiOutput("ui_StateTesting")
-                           )
+                           ),
+                  # Tab USA State Maps ----
+                  tabPanel("USA Map with data by State",
+                           fluidRow(
+                             column(3, radioButtons("AllState_Toggle", 
+                                                    label = h5("Show map with all states or your selections"),
+                                                    choices = c("AllStates", "selections"),
+                                                    selected = "selections")),
+                             column(3, radioButtons("mapdataSelect_capita", 
+                                                    label = h5("Show Percaptia (per 100k) or Absoulte values"),
+                                                    choices = c("Percaptia", "Absoulte"),
+                                                    selected = "Percaptia")),
+                             column(3, radioButtons("mapdataSelect", 
+                                                    label = h5("Show Infections or Deaths"),
+                                                    choices = c("Infections", "Deaths","Tests"), 
+                                                    selected = "Infections"))
+                             ),
+                           leafletOutput("Map_States", height = 800)
+                  ),
+                  # Tab States County Maps ----
+                  tabPanel("State Maps with data by County Infection"
+                           
+                  )
+                  
+                  #         h2("Predicted Infections by State"),
+                  #         textOutput("PredStateplot1message"),
+                  #         plotlyOutput("stateDeathratePlot", width = "100%"),
+                  #         h2("Adjusted Day 0 Plot"),
+                  #         textOutput("PredStateplot2message"),
+                  #         plotlyOutput("linedupstatedeathratePlot", width = "100%"),
+                  #         plotlyOutput("facetPlot5", width = "100%"),
+                  #         h2("Adjusted Day 0 Plot Per 100,000 people"),
+                  #         textOutput("PredStateplot4message"),
+                  #         plotlyOutput("lineduppercapitastateratePlot", width = "100%"),
+                  #         plotlyOutput("facetPlot6", width = "100%")
+                  #         )
       )
     )
   )

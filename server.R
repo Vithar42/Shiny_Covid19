@@ -1,6 +1,8 @@
 library(tidyverse)
 library(scales)
 library(plotly)
+library(leaflet)
+library(sf)
 #source("global.R")
 
 # Pull in Data using datawrangler ----  
@@ -31,17 +33,39 @@ function(input, output, session) {
   #                BarDate = "2020-05-10")
 
   # Reactive data prep
-  statedata = reactive({
+  mapstatedata = reactive({
     
+    if (input$AllState_Toggle == "selections") {
+      statechecked <- input$states
+    } else if (input$AllState_Toggle == "AllStates") {
+      statechecked <- state.name
+    }
+    
+    
+    alldata %>%
+      filter(state %in% statechecked) %>%
+      left_join(statePop, by = "state") %>%
+      mutate(pop = pop/100000) %>%
+      mutate(positivepop =  round(positive/pop,0),
+             deathpop =  round(death/pop,0),
+             hospitalizedpop = round(hospitalized/pop,0),
+             testpop = round(totalTestResults/pop,0))
+    
+  })
+  
+  statedata = reactive({
+
     alldata %>%
       filter(state %in% input$states) %>%
       left_join(statePop, by = "state") %>%
       mutate(pop = pop/100000) %>%
       mutate(positivepop =  positive/pop,
              deathpop =  death/pop,
-             hospitalizedpop = hospitalized/pop)
+             hospitalizedpop = hospitalized/pop,
+             testpop = totalTestResults/pop)
     
   })
+
 
   # Plot 1 for USA Total Tab ----
   output$CumulatedPlot = renderPlotly({
@@ -429,137 +453,190 @@ function(input, output, session) {
 
   })
   
-  # 1st Plot for infection prediction ----    
-  output$PredStateplot1message <- renderText({ 
+  # Tab USA County Maps ----
+  
+  
+  mapdataSelect = reactive({
     
-    df <- alldata %>%
-      group_by(date) %>%
-      select(date, death, positive) %>%
-      #pivot_longer(cols = c(death, positive)) %>% 
-      #filter(key %in% input$metrics) %>% 
-      group_by(date) %>% 
-      summarise(death = sum(death),
-                positive = sum(positive))
+    mapdataSelect <- input$mapdataSelect
+    mapdataSelect_capita <- input$mapdataSelect_capita
     
-    deathrate <- round(max(df$death) / (max(df$positive) /  (1 - 0.80)) * 100,2)
+    if (mapdataSelect_capita == "Absoulte") {
+      statedataagg <- mapstatedata() %>%
+        group_by(state) %>%
+        summarise(positive = round(max(positive),0),
+                  death = round(max(death),0), 
+                  testing = round(max(totalTestResults),0)) %>%
+        rename(NAME = state)
+    } else if (mapdataSelect_capita == "Percaptia"){
+      statedataagg <- mapstatedata() %>%
+        group_by(state) %>%
+        summarise(positive = round(max(positivepop),0),
+                  death = round(max(deathpop),0), 
+                  testing = round(max(testpop),0)) %>%
+        rename(NAME = state)
+    }
     
-    
-    paste("Deaths by state based on the states selected on the side pannel.  The starting point ", deathrate, "% is loosly based on the idea that 80% 
-     of casses are asymtomatic and so the slider default = (death count / (reported cases / (1 - 0.80)))", sep = "")
+    if (mapdataSelect == "Infections") {
+      statedataagg %>%
+        select(NAME, data = positive)
+    } else if (mapdataSelect == "Deaths") {
+      statedataagg %>%
+        select(NAME, data = death)
+    } else if (mapdataSelect == "Tests") {
+      statedataagg %>%
+        select(NAME, data = testing)
+    }
     
   })
+  
+  AllState_Toggle = reactive({
+    
+  })
+  
+  output$Map_States <- renderLeaflet({
 
-  
-  output$stateDeathratePlot = renderPlotly({
+    label <- input$mapdataSelect
     
-    df <- statedata() %>%
-      mutate(infected = death / (input$deathrate/100))
-    
-    DateStateCompPlot(df, 
-                      "infected", 
-                      "Predicted Infections by State", 
-                      "Predicted Infections", 
-                      input$logscaletoggle)
-    
-    ggplotly()
-    
-  })
-  
-  # 2nd Plot for infection prediction ----  
-  output$PredStateplot2message <- renderText({ 
-    
-    paste("Lines up the data so the day 0 has ",
-          input$dayo,
-          " deaths.  The Slider <Number of Infections for Day 0> lets you change the starting point.", 
-          sep = "")
-    
-  })
-  
-  output$linedupstatedeathratePlot = renderPlotly({
-    
-    df <- statedata() %>%
-      group_by(state) %>%
-      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo) - 1) %>%
-      filter(dayNo >= 0) %>%
-      mutate(infected = death / (input$deathrate/100)) 
-    
-    slidestartdatePlotFunction(df, 
-                               "infected", 
-                               "Infections by State", 
-                               "Confirmed Cases", 
-                               "Predicted Infections", 
-                               input$dayo, 
-                               input$logscaletoggle)
-    
-    ggplotly()
-    
-  })
-  
-  # 3rd Plot for infection prediction ----   
-  output$facetPlot5 = renderPlotly({
- 
-    df <- statedata() %>%
-      group_by(state) %>%
-      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo) - 1) %>%
-      filter(dayNo >= 0) %>%
-      mutate(infected = death / (input$deathrate/100)) 
-    
-    df$state2 <- df$state
-    
-    facetPlotFunction(df,"infected", input$logscaletoggle)
-    
-    ggplotly()
+    map_builder_states(mapstatedata(), mapdataSelect(), label)
 
-  })
+    })  
   
-  # 4th Plot for infection prediction ----
-  output$PredStateplot4message <- renderText({ 
-    
-    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Infections for Day 0> slider to influacne this chart."
-    
-  })
+  # Tab States County Maps ----
   
-  output$lineduppercapitastateratePlot = renderPlotly({
-
-    df <- statedata() %>%
-      group_by(state) %>%
-      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo) - 1) %>%
-      filter(dayNo >= 0) %>%
-      mutate(infected = deathpop / (input$deathrate/100)) 
-    
-    slidestartdatePopPlotFunction(df, 
-                                  "infected", 
-                                  "Infections by State", 
-                                  "Confirmed Cases", 
-                                  "Infections per 100000 people", 
-                                  input$dayo, 
-                                  input$logscaletoggle)
-    
-    ggplotly()
-    
-  })
   
-  # 5th Plot for infection prediction ----   
-  output$facetPlot6 = renderPlotly({
-
-    df <- statedata() %>%
-      group_by(state) %>%
-      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
-      mutate(dayNo = cumsum(dayNo) - 1) %>%
-      filter(dayNo >= 0) %>%
-      mutate(infected = deathpop / (input$deathrate/100)) 
-    
-    df$state2 <- df$state
-    
-    facetPlotFunction(df,"infected", input$logscaletoggle)
-    
-    ggplotly()
-
-  })
-  
+  # Depreceated Predictoin Charts ----
+      # 1st Plot for infection prediction ---    
+    #  output$PredStateplot1message <- renderText({ 
+    #    
+    #    df <- alldata %>%
+    #      group_by(date) %>%
+    #      select(date, death, positive) %>%
+    #      #pivot_longer(cols = c(death, positive)) %>% 
+    #      #filter(key %in% input$metrics) %>% 
+    #      group_by(date) %>% 
+    #      summarise(death = sum(death),
+    #                positive = sum(positive))
+    #    
+    #    deathrate <- round(max(df$death) / (max(df$positive) /  (1 - 0.80)) * 100,2)
+    #    
+    #    
+    #    paste("Deaths by state based on the states selected on the side pannel.  The starting point ", deathrate, "% is loosly     #based on the idea that 80% 
+    #     of casses are asymtomatic and so the slider default = (death count / (reported cases / (1 - 0.80)))", sep = "")
+    #    
+    #  })
+    #
+    #  
+    #  output$stateDeathratePlot = renderPlotly({
+    #    
+    #    df <- statedata() %>%
+    #      mutate(infected = death / (input$deathrate/100))
+    #    
+    #    DateStateCompPlot(df, 
+    #                      "infected", 
+    #                      "Predicted Infections by State", 
+    #                      "Predicted Infections", 
+    #                      input$logscaletoggle)
+    #    
+    #    ggplotly()
+    #    
+    #  })
+    #  
+    #  # 2nd Plot for infection prediction ---  
+    #  output$PredStateplot2message <- renderText({ 
+    #    
+    #    paste("Lines up the data so the day 0 has ",
+    #          input$dayo,
+    #          " deaths.  The Slider <Number of Infections for Day 0> lets you change the starting point.", 
+    #          sep = "")
+    #    
+    #  })
+    #  
+    #  output$linedupstatedeathratePlot = renderPlotly({
+    #    
+    #    df <- statedata() %>%
+    #      group_by(state) %>%
+    #      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+    #      mutate(dayNo = cumsum(dayNo) - 1) %>%
+    #      filter(dayNo >= 0) %>%
+    #      mutate(infected = death / (input$deathrate/100)) 
+    #    
+    #    slidestartdatePlotFunction(df, 
+    #                               "infected", 
+    #                               "Infections by State", 
+    #                               "Confirmed Cases", 
+    #                               "Predicted Infections", 
+    #                               input$dayo, 
+    #                               input$logscaletoggle)
+    #    
+    #    ggplotly()
+    #    
+    #  })
+    #  
+    #  # 3rd Plot for infection prediction ---   
+    #  output$facetPlot5 = renderPlotly({
+    # 
+    #    df <- statedata() %>%
+    #      group_by(state) %>%
+    #      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+    #      mutate(dayNo = cumsum(dayNo) - 1) %>%
+    #      filter(dayNo >= 0) %>%
+    #      mutate(infected = death / (input$deathrate/100)) 
+    #    
+    #    df$state2 <- df$state
+    #    
+    #    facetPlotFunction(df,"infected", input$logscaletoggle)
+    #    
+    #    ggplotly()
+    #
+    #  })
+    #  
+    #  # 4th Plot for infection prediction ---
+    #  output$PredStateplot4message <- renderText({ 
+    #    
+    #    "Day 0 is the same as the cumulitive cases plot above, use the <Number of Infections for Day 0> slider to influacne this    #chart."
+    #    
+    #  })
+    #  
+    #  output$lineduppercapitastateratePlot = renderPlotly({
+    #
+    #    df <- statedata() %>%
+    #      group_by(state) %>%
+    #      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+    #      mutate(dayNo = cumsum(dayNo) - 1) %>%
+    #      filter(dayNo >= 0) %>%
+    #      mutate(infected = deathpop / (input$deathrate/100)) 
+    #    
+    #    slidestartdatePopPlotFunction(df, 
+    #                                  "infected", 
+    #                                  "Infections by State", 
+    #                                  "Confirmed Cases", 
+    #                                  "Infections per 100000 people", 
+    #                                  input$dayo, 
+    #                                  input$logscaletoggle)
+    #    
+    #    ggplotly()
+    #    
+    #  })
+    #  
+    #  # 5th Plot for infection prediction ---   
+    #  output$facetPlot6 = renderPlotly({
+    #
+    #    df <- statedata() %>%
+    #      group_by(state) %>%
+    #      mutate(dayNo = if_else(positive >= input$dayo, 1, 0, missing = NULL)) %>%
+    #      mutate(dayNo = cumsum(dayNo) - 1) %>%
+    #      filter(dayNo >= 0) %>%
+    #      mutate(infected = deathpop / (input$deathrate/100)) 
+    #    
+    #    df$state2 <- df$state
+    #    
+    #    facetPlotFunction(df,"infected", input$logscaletoggle)
+    #    
+    #    ggplotly()
+    #
+    #  })
+    #  
   # 1st plot for hospilizatoins tab ----
   output$HospStateplot1message <- renderText({ 
       

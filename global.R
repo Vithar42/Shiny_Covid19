@@ -1,6 +1,9 @@
 library(tidyverse)
 library(scales)
 library(plotly)
+library(leaflet)
+library(geojsonio)
+library(sp)
 
 #### Data loading functoins ----
 #### Function to check if it data is older than an hour ----
@@ -39,8 +42,9 @@ NYtimes_tsv = function(fileName, baseURL) {
   # return(data)
 }
 
-baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
-fileName <- "states-daily.csv"
+
+#baseURL <- "https://raw.githubusercontent.com/garykac/covid19/master/data/"
+#fileName <- "states-daily.csv"
 
 #### Function to check if it data is older than an hour ####
 garykac_csv = function(fileName, baseURL) {
@@ -268,6 +272,29 @@ alldata <- garykac_csv("states-daily.csv", baseURL) %>%
   filter(date > as.Date("2020-03-01"))
 
 
+
+#### Function to import NewYork Times Counry Level Data ####
+NYT_Countu_csv = function(fileName, baseURL) {
+  
+  statename <- data.frame(state = state.name, abb = state.abb)
+  
+  #### Code to pull dataset live from source ####
+  data = read_csv(file.path(baseURL, fileName)) %>%                                      # inport data from url
+    mutate_if(is.numeric , replace_na, replace = 0) %>%                                  # Make all NA's in table zeros
+    filter(state %in% state.name) %>%
+    arrange(state, date) %>%
+    select(state, everything())
+  
+  return(data)
+
+}
+
+# Pull in covidtracking.com Data from https://github.com/garykac/covid19/tree/master/data ----  
+baseURL <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/"
+fileName <- "us-counties.csv"
+alldata_county <- NYT_Countu_csv(fileName, baseURL) %>%
+  filter(date > as.Date("2020-03-01"))
+
 # For state UI page
 state_ui_fun <- function(state){
   
@@ -303,8 +330,6 @@ state_ui_Pred_fun <- function(state, logscaletoggle){
      )
 }
 
-
-
 # For stateTesting UI page
 state_ui_Testing_fun <- function(state, logscaletoggle){
   
@@ -319,6 +344,60 @@ state_ui_Testing_fun <- function(state, logscaletoggle){
   )
 }
 
+#### function to build leaflet map ----
+map_builder_states <- function(statedata, statedataagg, label){
+  states <- geojson_read("DATA/gz_2010_us_040_00_500k.json", what = "sp")
+  #class(states)
+  #names(states)
+  #"Infections", "Deaths", "Tests"
+
+
+  states <- merge(states, statedataagg, duplicateGeoms = T)
+  
+  m <- leaflet(states) %>%
+    addTiles(
+      urlTemplate = "http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga", 
+      attribution = 'Google'
+    ) %>%
+    setView(-96, 37.8, 4) %>%
+    addProviderTiles("MapBox", options = providerTileOptions(
+      id = "mapbox.light",
+      accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN')))
+
+  
+
+    bins <- seq(from = round(min(na.omit(states$data)),0), to = round(max(na.omit(states$data)),0), length.out = 10)
+    
+    pal <- colorBin("YlOrRd", domain = round(states$data,0), bins = bins)
+    
+    labels <- paste("<strong>", states$NAME, "</strong><br/>", comma(round(states$data,0)), "total", label) %>% 
+      lapply(htmltools::HTML)
+    
+    m <- m %>% addPolygons(
+      fillColor = ~pal(data),
+      weight = 2,
+      opacity = 1,
+      color = "white",
+      dashArray = "3",
+      fillOpacity = 0.7,
+      highlight = highlightOptions(weight = 5,
+                                   color = "#666",         
+                                   dashArray = "",
+                                   fillOpacity = 0.7,
+                                   bringToFront = TRUE),
+      label = labels,
+      labelOptions = labelOptions(
+        style = list("font-weight" = "normal", padding = "3px 8px"),
+        textsize = "15px",
+        direction = "auto"))
+
+  m %>% addLegend(pal = pal, 
+                  values = ~data, 
+                  opacity = 0.7, 
+                  title = NULL,
+                  position = "bottomright")
+    
+}
 
 # state Shutdowns data ----
 # StayHomeOrder data from: https://www.nytimes.com/interactive/2020/us/coronavirus-stay-at-home-order.html
